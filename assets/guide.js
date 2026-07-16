@@ -35,6 +35,34 @@
     ne: { second: ["त्यसपछि", "क्रमशः सिक्नुहोस्", "Reader, Tablet, ग्रीनहाउस, नियम र निषेध, वा आवश्यक जानकारी छान्नुहोस्।"] }
   };
   const SPEECH_LOCALES = { pl: "pl-PL", en: "en-US", ua: "uk-UA", ru: "ru-RU", az: "az-AZ", es: "es-ES", fil: "fil-PH", id: "id-ID", ne: "ne-NP" };
+  const VOICE_PROFILES = {
+    pl: { rate: .84, pitch: 1 }, en: { rate: .88, pitch: 1 }, ua: { rate: .82, pitch: 1.02 },
+    ru: { rate: .82, pitch: 1 }, az: { rate: .78, pitch: 1 }, es: { rate: .86, pitch: 1.02 },
+    fil: { rate: .82, pitch: 1.03 }, id: { rate: .82, pitch: 1.02 }, ne: { rate: .76, pitch: 1.05 }
+  };
+  function findVoice(locale) {
+    const voices = window.speechSynthesis?.getVoices?.() || [];
+    const exact = locale.toLowerCase();
+    const prefix = exact.split("-")[0];
+    return voices.find((voice) => String(voice.lang || "").toLowerCase() === exact)
+      || voices.find((voice) => String(voice.lang || "").toLowerCase().startsWith(`${prefix}-`))
+      || null;
+  }
+  function waitForVoice(locale, callback) {
+    const synth = window.speechSynthesis;
+    if (!synth) { callback(null); return; }
+    const immediate = findVoice(locale);
+    if (immediate) { callback(immediate); return; }
+    let finished = false;
+    const finish = () => {
+      if (finished) return;
+      finished = true;
+      synth.removeEventListener?.("voiceschanged", finish);
+      callback(findVoice(locale));
+    };
+    synth.addEventListener?.("voiceschanged", finish, { once: true });
+    window.setTimeout(finish, 450);
+  }
   const SHORT_SCREEN_COPY = {
     pl: { hint: "Krótki przewodnik.", title: "Witaj!", intro: "Wybierz język i rozpocznij.", gate: "Smok pokaże Ci, co zrobić.", steps: [["1", "Wybierz miejsce", "Mapa pracy."], ["2", "Posłuchaj", "Krótka instrukcja."], ["3", "Przejdź dalej", "Otworzy się lokalizacja."]] },
     en: { hint: "A short guide.", title: "Welcome!", intro: "Choose a language and start.", gate: "The dragon will show you what to do.", steps: [["1", "Choose a place", "Work map."], ["2", "Listen", "A short guide."], ["3", "Continue", "Your location will open."]] },
@@ -46,7 +74,7 @@
     id: { hint: "Panduan singkat.", title: "Selamat datang!", intro: "Pilih bahasa dan mulai.", gate: "Naga akan menunjukkan apa yang harus dilakukan.", steps: [["1", "Pilih tempat", "Peta kerja."], ["2", "Dengarkan", "Panduan singkat."], ["3", "Lanjutkan", "Lokasi akan terbuka."]] },
     ne: { hint: "छोटो मार्गदर्शन।", title: "स्वागत छ!", intro: "भाषा छान्नुहोस् र सुरु गर्नुहोस्।", gate: "ड्रागनले के गर्ने देखाउनेछ।", steps: [["1", "स्थान छान्नुहोस्", "कामको नक्सा।"], ["2", "सुन्नुहोस्", "छोटो मार्गदर्शन।"], ["3", "अगाडि बढ्नुहोस्", "स्थान खुल्नेछ।"]] }
   };
-  const BUILD = "20260716-dragon7";
+  const BUILD = "20260716-dragon8";
   const params = new URLSearchParams(window.location.search);
   const locationKey = params.get("location");
   const validLocation = Object.prototype.hasOwnProperty.call(TARGETS, locationKey);
@@ -156,13 +184,19 @@
     speechFallbackActive = true;
     const shortCopy = SHORT_SCREEN_COPY[lang] || SHORT_SCREEN_COPY.pl;
     const phrases = [shortCopy.title, shortCopy.intro, ...shortCopy.steps.map((part) => part.slice(1).join(". "))];
-    const utterance = new SpeechSynthesisUtterance(phrases.join(" "));
-    utterance.lang = SPEECH_LOCALES[lang] || "pl-PL";
-    utterance.rate = .92;
-    utterance.onstart = () => { setSpeaking(true); audioStatus.textContent = t().playing; };
-    utterance.onend = () => { speechFallbackActive = false; completeGuide(); };
-    utterance.onerror = () => { speechFallbackActive = false; setSpeaking(false); audioStatus.textContent = t().fallback; openButton.hidden = false; };
-    window.speechSynthesis.speak(utterance);
+    const locale = SPEECH_LOCALES[lang] || "en-US";
+    const profile = VOICE_PROFILES[lang] || VOICE_PROFILES.en;
+    waitForVoice(locale, (voice) => {
+      const utterance = new SpeechSynthesisUtterance(phrases.join(" "));
+      utterance.lang = locale;
+      utterance.rate = profile.rate;
+      utterance.pitch = profile.pitch;
+      if (voice) utterance.voice = voice;
+      utterance.onstart = () => { setSpeaking(true); audioStatus.textContent = t().playing; };
+      utterance.onend = () => { speechFallbackActive = false; completeGuide(); };
+      utterance.onerror = () => { speechFallbackActive = false; setSpeaking(false); audioStatus.textContent = t().fallback; openButton.hidden = false; };
+      window.speechSynthesis.speak(utterance);
+    });
   }
 
   function prepareAudio() {
