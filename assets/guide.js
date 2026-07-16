@@ -35,7 +35,7 @@
     ne: { second: ["त्यसपछि", "क्रमशः सिक्नुहोस्", "Reader, Tablet, ग्रीनहाउस, नियम र निषेध, वा आवश्यक जानकारी छान्नुहोस्।"] }
   };
   const SPEECH_LOCALES = { pl: "pl-PL", en: "en-US", ua: "uk-UA", ru: "ru-RU", az: "az-AZ", es: "es-ES", fil: "fil-PH", id: "id-ID", ne: "ne-NP" };
-  const BUILD = "20260716-dragon4";
+  const BUILD = "20260716-dragon5";
   const params = new URLSearchParams(window.location.search);
   const locationKey = params.get("location");
   const validLocation = Object.prototype.hasOwnProperty.call(TARGETS, locationKey);

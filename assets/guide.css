@@ -88,7 +88,7 @@ button { cursor: pointer; }
 .invalid-state a { width: 100%; max-width: 310px; text-decoration: none; }
 .language-gate { position: fixed; z-index: 10; inset: 0; display: grid; place-items: center; padding: 15px; background: rgba(43, 22, 25, .5); }
 .language-dialog { width: min(100%, 480px); max-height: min(720px, 94svh); overflow: auto; padding: 24px 18px 18px; border: 1px solid #f0d8d4; border-radius: 22px; background: #fffaf7; box-shadow: 0 24px 80px rgba(43, 22, 25, .28); text-align: center; }
-.gate-dragon { font-size: 3.1rem; line-height: 1; }
+.gate-logo { display: block; width: min(100%, 168px); height: auto; margin: 0 auto 8px; border-radius: 16px; box-shadow: 0 10px 26px rgba(91, 20, 29, .1); }
 .language-dialog h1 { margin: 5px 0 6px; font-size: 1.55rem; }
 .language-dialog > p:not(.eyebrow) { margin: 0 auto 16px; max-width: 350px; color: var(--muted); font-size: .9rem; line-height: 1.45; }
 .language-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
@@ -118,6 +118,7 @@ button { cursor: pointer; }
   .secondary-actions { grid-template-columns: 1fr 1fr; }
   .secondary-actions #skipButton { grid-column: 1 / -1; }
   .language-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .gate-logo { width: min(100%, 142px); }
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
