@@ -35,7 +35,18 @@
     ne: { second: ["त्यसपछि", "क्रमशः सिक्नुहोस्", "Reader, Tablet, ग्रीनहाउस, नियम र निषेध, वा आवश्यक जानकारी छान्नुहोस्।"] }
   };
   const SPEECH_LOCALES = { pl: "pl-PL", en: "en-US", ua: "uk-UA", ru: "ru-RU", az: "az-AZ", es: "es-ES", fil: "fil-PH", id: "id-ID", ne: "ne-NP" };
-  const BUILD = "20260716-dragon5";
+  const SHORT_SCREEN_COPY = {
+    pl: { hint: "Krótki przewodnik.", title: "Witaj!", intro: "Wybierz język i rozpocznij.", gate: "Smok pokaże Ci, co zrobić.", steps: [["1", "Wybierz miejsce", "Mapa pracy."], ["2", "Posłuchaj", "Krótka instrukcja."], ["3", "Przejdź dalej", "Otworzy się lokalizacja."]] },
+    en: { hint: "A short guide.", title: "Welcome!", intro: "Choose a language and start.", gate: "The dragon will show you what to do.", steps: [["1", "Choose a place", "Work map."], ["2", "Listen", "A short guide."], ["3", "Continue", "Your location will open."]] },
+    ua: { hint: "Короткий інструктаж.", title: "Вітаю!", intro: "Оберіть мову та почніть.", gate: "Дракон покаже, що робити.", steps: [["1", "Оберіть місце", "Карта роботи."], ["2", "Послухайте", "Короткий інструктаж."], ["3", "Перейдіть далі", "Відкриється локація."]] },
+    ru: { hint: "Короткий инструктаж.", title: "Привет!", intro: "Выберите язык и начните.", gate: "Дракон покажет, что делать.", steps: [["1", "Выберите место", "Карта работы."], ["2", "Послушайте", "Короткий инструктаж."], ["3", "Перейдите дальше", "Откроется локация."]] },
+    az: { hint: "Qısa bələdçi.", title: "Salam!", intro: "Dil seçin və başlayın.", gate: "Əjdaha nə etməli olduğunuzu göstərəcək.", steps: [["1", "Məkan seçin", "İş xəritəsi."], ["2", "Qulaq asın", "Qısa bələdçi."], ["3", "Davam edin", "Məkan açılacaq."]] },
+    es: { hint: "Guía breve.", title: "¡Hola!", intro: "Elige un idioma y empieza.", gate: "El dragón te mostrará qué hacer.", steps: [["1", "Elige un lugar", "Mapa de trabajo."], ["2", "Escucha", "Guía breve."], ["3", "Continúa", "Se abrirá tu ubicación."]] },
+    fil: { hint: "Maikling gabay.", title: "Kumusta!", intro: "Pumili ng wika at magsimula.", gate: "Ipapakita ng dragon ang dapat gawin.", steps: [["1", "Pumili ng lugar", "Mapa ng trabaho."], ["2", "Makinig", "Maikling gabay."], ["3", "Magpatuloy", "Bubukas ang lokasyon."]] },
+    id: { hint: "Panduan singkat.", title: "Selamat datang!", intro: "Pilih bahasa dan mulai.", gate: "Naga akan menunjukkan apa yang harus dilakukan.", steps: [["1", "Pilih tempat", "Peta kerja."], ["2", "Dengarkan", "Panduan singkat."], ["3", "Lanjutkan", "Lokasi akan terbuka."]] },
+    ne: { hint: "छोटो मार्गदर्शन।", title: "स्वागत छ!", intro: "भाषा छान्नुहोस् र सुरु गर्नुहोस्।", gate: "ड्रागनले के गर्ने देखाउनेछ।", steps: [["1", "स्थान छान्नुहोस्", "कामको नक्सा।"], ["2", "सुन्नुहोस्", "छोटो मार्गदर्शन।"], ["3", "अगाडि बढ्नुहोस्", "स्थान खुल्नेछ।"]] }
+  };
+  const BUILD = "20260716-dragon6";
   const params = new URLSearchParams(window.location.search);
   const locationKey = params.get("location");
   const validLocation = Object.prototype.hasOwnProperty.call(TARGETS, locationKey);
@@ -82,13 +93,14 @@
     document.documentElement.lang = lang === "ua" ? "uk" : lang;
     languageSelect.value = lang;
     const copy = { ...t(), ...(TRANSLATION_REFINEMENTS[lang] || {}) };
+    const shortCopy = SHORT_SCREEN_COPY[lang] || SHORT_SCREEN_COPY.pl;
     setText("locationLabel", copy.locationLabel);
     setText("locationName", LOCATION_NAMES[locationKey] || "CITRONEX");
-    setText("locationHint", copy.hint);
-    setText("guideTitle", copy.title);
+    setText("locationHint", shortCopy.hint);
+    setText("guideTitle", shortCopy.title);
     setText("speechLabel", SPEECH_LABELS[lang] || SPEECH_LABELS.pl);
-    setText("speechText", SPOKEN_TRANSCRIPTS[lang] || copy.intro);
-    [["step1Kicker", "step1Title", "step1Text"], ["step2Kicker", "step2Title", "step2Text"], ["step3Kicker", "step3Title", "step3Text"]].forEach((ids, index) => { const values = copy[["first", "second", "third"][index]]; ids.forEach((id, valueIndex) => setText(id, values[valueIndex])); });
+    setText("speechText", shortCopy.intro);
+    [["step1Kicker", "step1Title", "step1Text"], ["step2Kicker", "step2Title", "step2Text"], ["step3Kicker", "step3Title", "step3Text"]].forEach((ids, index) => { const values = shortCopy.steps[index]; ids.forEach((id, valueIndex) => setText(id, values[valueIndex])); });
     startButton.textContent = copy.start;
     openButton.textContent = copy.open;
     pauseButton.textContent = audio.paused ? copy.pause : copy.resume;
@@ -96,7 +108,7 @@
     skipButton.textContent = copy.skip;
     audioStatus.textContent = copy.reading;
     setText("gateTitle", copy.gateTitle);
-    setText("gateText", copy.gateText);
+    setText("gateText", shortCopy.gate);
     if (audioSourceReady && !audio.paused) stopPlayback();
   }
 
@@ -132,8 +144,8 @@
     if (!window.speechSynthesis) { audioStatus.textContent = t().fallback; openButton.hidden = false; return; }
     stopSpeechFallback();
     speechFallbackActive = true;
-    const copy = { ...t(), ...(TRANSLATION_REFINEMENTS[lang] || {}) };
-    const phrases = [copy.title, SPOKEN_TRANSCRIPTS[lang] || copy.intro, ...[copy.first, copy.second, copy.third].map((part) => part.slice(1).join(". "))];
+    const shortCopy = SHORT_SCREEN_COPY[lang] || SHORT_SCREEN_COPY.pl;
+    const phrases = [shortCopy.title, shortCopy.intro, ...shortCopy.steps.map((part) => part.slice(1).join(". "))];
     const utterance = new SpeechSynthesisUtterance(phrases.join(" "));
     utterance.lang = SPEECH_LOCALES[lang] || "pl-PL";
     utterance.rate = .92;
