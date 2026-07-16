@@ -36,17 +36,30 @@
   };
   const SPEECH_LOCALES = { pl: "pl-PL", en: "en-US", ua: "uk-UA", ru: "ru-RU", az: "az-AZ", es: "es-ES", fil: "fil-PH", id: "id-ID", ne: "ne-NP" };
   const VOICE_PROFILES = {
-    pl: { rate: .84, pitch: 1 }, en: { rate: .88, pitch: 1 }, ua: { rate: .82, pitch: 1.02 },
-    ru: { rate: .82, pitch: 1 }, az: { rate: .78, pitch: 1 }, es: { rate: .86, pitch: 1.02 },
-    fil: { rate: .82, pitch: 1.03 }, id: { rate: .82, pitch: 1.02 }, ne: { rate: .76, pitch: 1.05 }
+    pl: { rate: .78, pitch: 1 }, en: { rate: .82, pitch: 1 }, ua: { rate: .76, pitch: 1 },
+    ru: { rate: .76, pitch: 1 }, az: { rate: .72, pitch: 1 }, es: { rate: .80, pitch: 1 },
+    fil: { rate: .76, pitch: 1 }, id: { rate: .76, pitch: 1 }, ne: { rate: .70, pitch: 1 }
   };
   function findVoice(locale) {
     const voices = window.speechSynthesis?.getVoices?.() || [];
     const exact = locale.toLowerCase();
     const prefix = exact.split("-")[0];
-    return voices.find((voice) => String(voice.lang || "").toLowerCase() === exact)
-      || voices.find((voice) => String(voice.lang || "").toLowerCase().startsWith(`${prefix}-`))
-      || null;
+    const matching = voices.filter((voice) => {
+      const language = String(voice.lang || "").toLowerCase();
+      return language === exact || language.startsWith(`${prefix}-`);
+    });
+    return matching.sort((left, right) => {
+      const score = (voice) => {
+        const language = String(voice.lang || "").toLowerCase();
+        const name = String(voice.name || "").toLowerCase();
+        let value = language === exact ? 100 : 60;
+        if (/natural|neural|google|microsoft|enhanced|premium|siri/.test(name)) value += 35;
+        if (/compact|espeak|robot/.test(name)) value -= 20;
+        if (voice.default) value += 3;
+        return value;
+      };
+      return score(right) - score(left);
+    })[0] || null;
   }
   function waitForVoice(locale, callback) {
     const synth = window.speechSynthesis;
@@ -74,7 +87,7 @@
     id: { hint: "Panduan singkat.", title: "Selamat datang!", intro: "Pilih bahasa dan mulai.", gate: "Naga akan menunjukkan apa yang harus dilakukan.", steps: [["1", "Pilih tempat", "Peta kerja."], ["2", "Dengarkan", "Panduan singkat."], ["3", "Lanjutkan", "Lokasi akan terbuka."]] },
     ne: { hint: "छोटो मार्गदर्शन।", title: "स्वागत छ!", intro: "भाषा छान्नुहोस् र सुरु गर्नुहोस्।", gate: "ड्रागनले के गर्ने देखाउनेछ।", steps: [["1", "स्थान छान्नुहोस्", "कामको नक्सा।"], ["2", "सुन्नुहोस्", "छोटो मार्गदर्शन।"], ["3", "अगाडि बढ्नुहोस्", "स्थान खुल्नेछ।"]] }
   };
-  const BUILD = "20260716-dragon8";
+  const BUILD = "20260716-dragon9";
   const params = new URLSearchParams(window.location.search);
   const locationKey = params.get("location");
   const validLocation = Object.prototype.hasOwnProperty.call(TARGETS, locationKey);
