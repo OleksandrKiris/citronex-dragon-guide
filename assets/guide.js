@@ -13,7 +13,29 @@
     ryczywol: "Ryczywół",
     zgorzelec_bogatynia: "Zgorzelec / Bogatynia"
   };
-  const BUILD = "20260716-dragon2";
+  const SPEECH_LABELS = {
+    pl: "TEKST NAGRANIA", en: "RECORDING TEXT", ua: "ТЕКСТ ЗАПИСУ", ru: "ТЕКСТ ЗАПИСИ", az: "SƏS YAZISININ MƏTNİ", es: "TEXTO DEL AUDIO", fil: "TEKSTO NG AUDIO", id: "TEKS REKAMAN", ne: "रेकर्डिङको पाठ"
+  };
+  const SPOKEN_TRANSCRIPTS = {
+    pl: "To jest CITRONEX hydra S.R.Z.B. Tutaj wybierasz przyjazd do pracy albo swoją lokalizację pracy. Po kliknięciu otworzy się właściwe szkolenie: mapy, instrukcje, kontakty i ważne informacje.",
+    en: "This is CITRONEX hydra S.R.Z.B. Here you choose arrival to work or your work location. After choosing, the correct training will open: maps, instructions, contacts, and important information.",
+    ua: "Це CITRONEX hydra S.R.Z.B. Тут оберіть приїзд на роботу або свою робочу локацію. Після вибору відкриється потрібне навчання: карти, інструкції, контакти та важлива інформація.",
+    ru: "Это CITRONEX hydra S.R.Z.B. Здесь выберите приезд на работу или свою рабочую локацию. После выбора откроется нужное обучение: карты, инструкции, контакты и важная информация.",
+    az: "Bu CITRONEX hydra S.R.Z.B.-dir. Burada işə gəlişi və ya iş yerinizi seçirsiniz. Seçimdən sonra sizə uyğun təlim açılacaq: xəritələr, təlimatlar, kontaktlar və vacib məlumatlar.",
+    es: "Este es CITRONEX hydra S.R.Z.B. Aquí eliges la llegada al trabajo o tu ubicación de trabajo. Después se abrirá la formación correcta: mapas, instrucciones, contactos e información importante.",
+    fil: "Ito ang CITRONEX hydra S.R.Z.B. Dito pipiliin mo ang pagdating sa trabaho o ang iyong lokasyon sa trabaho. Pagkatapos, bubukas ang tamang training: mga mapa, instruksyon, kontak at mahalagang impormasyon.",
+    id: "Ini adalah CITRONEX hydra S.R.Z.B. Di sini Anda memilih kedatangan ke tempat kerja atau lokasi kerja Anda. Setelah itu akan terbuka pelatihan yang benar: peta, instruksi, kontak, dan informasi penting.",
+    ne: "यो CITRONEX hydra S.R.Z.B. हो। यहाँ तपाईं काममा आउने जानकारी वा आफ्नो काम गर्ने स्थान छान्नुहुन्छ। त्यसपछि सही तालिम खुल्छ: नक्सा, निर्देशन, सम्पर्क र महत्वपूर्ण जानकारी।"
+  };
+  const TRANSLATION_REFINEMENTS = {
+    en: { second: ["NEXT", "Learn step by step", "Choose Reader, Tablet, Greenhouse, What is not allowed, or the information you need."] },
+    az: { third: ["SONDA", "Təlimə başlayın", "Bələdçidən sonra məkanınızın səhifəsi açılacaq."] },
+    es: { skip: "Omitir audio" },
+    fil: { second: ["SUNOD", "Matuto nang sunod-sunod", "Piliin ang Reader, Tablet, greenhouse, Mga Bawal, o ang impormasyong kailangan mo."], skip: "Laktawan ang audio", fallback: "Hindi muna available ang audio. Makikita pa rin ang teksto ng gabay." },
+    ne: { second: ["त्यसपछि", "क्रमशः सिक्नुहोस्", "Reader, Tablet, ग्रीनहाउस, नियम र निषेध, वा आवश्यक जानकारी छान्नुहोस्।"] }
+  };
+  const SPEECH_LOCALES = { pl: "pl-PL", en: "en-US", ua: "uk-UA", ru: "ru-RU", az: "az-AZ", es: "es-ES", fil: "fil-PH", id: "id-ID", ne: "ne-NP" };
+  const BUILD = "20260716-dragon3";
   const params = new URLSearchParams(window.location.search);
   const locationKey = params.get("location");
   const validLocation = Object.prototype.hasOwnProperty.call(TARGETS, locationKey);
@@ -59,12 +81,13 @@
     localStorage.setItem("cxDragonGuide:lang", lang);
     document.documentElement.lang = lang === "ua" ? "uk" : lang;
     languageSelect.value = lang;
-    const copy = t();
+    const copy = { ...t(), ...(TRANSLATION_REFINEMENTS[lang] || {}) };
     setText("locationLabel", copy.locationLabel);
     setText("locationName", LOCATION_NAMES[locationKey] || "CITRONEX");
     setText("locationHint", copy.hint);
     setText("guideTitle", copy.title);
-    setText("speechText", copy.intro);
+    setText("speechLabel", SPEECH_LABELS[lang] || SPEECH_LABELS.pl);
+    setText("speechText", SPOKEN_TRANSCRIPTS[lang] || copy.intro);
     [["step1Kicker", "step1Title", "step1Text"], ["step2Kicker", "step2Title", "step2Text"], ["step3Kicker", "step3Title", "step3Text"]].forEach((ids, index) => { const values = copy[["first", "second", "third"][index]]; ids.forEach((id, valueIndex) => setText(id, values[valueIndex])); });
     startButton.textContent = copy.start;
     openButton.textContent = copy.open;
@@ -109,9 +132,10 @@
     if (!window.speechSynthesis) { audioStatus.textContent = t().fallback; openButton.hidden = false; return; }
     stopSpeechFallback();
     speechFallbackActive = true;
-    const phrases = [t().title, t().intro, ...[t().first, t().second, t().third].map((part) => part.slice(1).join(". "))];
+    const copy = { ...t(), ...(TRANSLATION_REFINEMENTS[lang] || {}) };
+    const phrases = [copy.title, SPOKEN_TRANSCRIPTS[lang] || copy.intro, ...[copy.first, copy.second, copy.third].map((part) => part.slice(1).join(". "))];
     const utterance = new SpeechSynthesisUtterance(phrases.join(" "));
-    utterance.lang = lang === "ua" ? "uk-UA" : `${lang}-${lang === "en" ? "US" : lang === "es" ? "ES" : lang === "pt" ? "BR" : "PL"}`;
+    utterance.lang = SPEECH_LOCALES[lang] || "pl-PL";
     utterance.rate = .92;
     utterance.onstart = () => { setSpeaking(true); audioStatus.textContent = t().playing; };
     utterance.onend = () => { speechFallbackActive = false; completeGuide(); };

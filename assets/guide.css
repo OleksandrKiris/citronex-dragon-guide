@@ -42,6 +42,7 @@ button { cursor: pointer; }
 .speech-bubble > div { min-width: 0; }
 .speech-bubble::before { content: ""; position: absolute; top: -9px; left: calc(50% - 9px); width: 16px; height: 16px; border-top: 1px solid #f0d8d4; border-left: 1px solid #f0d8d4; background: #fff; transform: rotate(45deg); }
 .speech-dot { flex: 0 0 10px; width: 10px; height: 10px; margin-top: 5px; border-radius: 50%; background: var(--gold); box-shadow: 0 0 0 5px #fff4d8; }
+.speech-label { display: block; margin-bottom: 4px; color: var(--red); font-size: .64rem; font-weight: 900; letter-spacing: .1em; text-transform: uppercase; }
 .speech-title { margin: 0; color: var(--ink); font-size: 1.03rem; font-weight: 850; line-height: 1.26; overflow-wrap: anywhere; word-break: break-word; }
 .speech-text { margin: 6px 0 0; color: var(--muted); font-size: .88rem; line-height: 1.45; overflow-wrap: anywhere; word-break: break-word; }
 .dragon-wrap.is-speaking { animation-duration: 1.5s; }
