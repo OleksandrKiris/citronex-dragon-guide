@@ -123,3 +123,251 @@ button { cursor: pointer; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }
+
+/* Unified CITRONEX frontend standard 2026-07-16. */
+:root {
+  --cx-bg: #f4f7f5;
+  --cx-surface: #ffffff;
+  --cx-text: #17211c;
+  --cx-muted: #5f6d65;
+  --cx-line: #dce6df;
+  --cx-red: #c7352e;
+  --cx-green: #15803d;
+  --cx-blue: #2563eb;
+  --cx-yellow: #c26b08;
+  --cx-radius: 14px;
+  --cx-shadow: 0 8px 24px rgba(23, 33, 28, .08);
+}
+
+html {
+  min-width: 280px;
+  background: var(--cx-bg);
+  text-size-adjust: 100%;
+  scrollbar-gutter: stable;
+}
+
+body {
+  min-width: 280px;
+  background: linear-gradient(180deg, rgba(21, 128, 61, .06), transparent 280px), var(--cx-bg);
+  color: var(--cx-text);
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+.page-shell {
+  width: min(100%, 720px);
+  padding: 0 12px max(26px, env(safe-area-inset-bottom));
+}
+
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  min-height: 58px;
+  padding: 7px 0;
+  border-bottom: 1px solid rgba(220, 230, 223, .95);
+  background: rgba(244, 247, 245, .94);
+  box-shadow: 0 6px 18px rgba(23, 33, 28, .07);
+  backdrop-filter: blur(16px);
+}
+
+.brand img,
+.language-picker select,
+.location-banner,
+.speech-bubble,
+.guide-step,
+.action-button,
+.language-dialog,
+.language-grid button {
+  border-radius: 12px;
+}
+
+.brand img {
+  width: 40px;
+  height: 40px;
+  box-shadow: 0 6px 14px rgba(23, 33, 28, .08);
+}
+
+.brand-name {
+  color: var(--cx-text);
+  font-size: 13px;
+  line-height: 1.1;
+}
+
+.language-picker select {
+  min-height: 48px;
+  border-color: var(--cx-line);
+  color: var(--cx-text);
+  font-size: 13px;
+}
+
+.guide-app {
+  gap: 15px;
+  padding-top: 12px;
+}
+
+.location-banner {
+  border-color: var(--cx-line);
+  border-left-color: var(--cx-red);
+  box-shadow: var(--cx-shadow);
+}
+
+.location-icon {
+  background: var(--cx-red);
+}
+
+.dragon-stage {
+  gap: 10px;
+}
+
+.dragon-wrap {
+  width: min(100%, 320px);
+}
+
+.speech-bubble {
+  padding: 14px;
+  border-color: var(--cx-line);
+  box-shadow: var(--cx-shadow);
+}
+
+.speech-title {
+  color: var(--cx-text);
+  font-size: 17px;
+  line-height: 1.25;
+}
+
+.speech-text,
+.guide-step p,
+.audio-status {
+  color: var(--cx-muted);
+}
+
+.guide-steps,
+.guide-actions,
+.primary-actions,
+.secondary-actions {
+  gap: 10px;
+}
+
+.guide-step {
+  padding: 12px;
+  border-color: var(--cx-line);
+  background: rgba(255, 255, 255, .9);
+}
+
+.step-number {
+  border-radius: 10px;
+  background: var(--cx-red);
+}
+
+.action-button {
+  min-height: 54px;
+  padding: 10px 13px;
+  font-size: 15px;
+  line-height: 1.2;
+  touch-action: manipulation;
+}
+
+.action-primary {
+  background: var(--cx-red);
+  box-shadow: 0 8px 18px rgba(199, 53, 46, .18);
+}
+
+.action-secondary {
+  border-color: var(--cx-line);
+  color: var(--cx-text);
+}
+
+.language-gate {
+  background: rgba(23, 33, 28, .5);
+}
+
+.language-dialog {
+  max-height: min(720px, 94svh);
+  border-color: var(--cx-line);
+  background: #ffffff;
+  box-shadow: 0 24px 80px rgba(23, 33, 28, .24);
+}
+
+.language-grid button {
+  min-height: 52px;
+  border-color: var(--cx-line);
+  color: var(--cx-text);
+  font-size: 14px;
+}
+
+.language-grid button:hover,
+.language-grid button:focus-visible {
+  border-color: var(--cx-red);
+  color: var(--cx-red);
+  background: #fff5f4;
+}
+
+@media (max-width: 430px) {
+  .page-shell {
+    padding-inline: 9px;
+  }
+
+  .topbar {
+    gap: 8px;
+  }
+
+  .brand img {
+    width: 34px;
+    height: 34px;
+  }
+
+  .brand-name {
+    font-size: 11px;
+  }
+
+  .language-picker select {
+    min-height: 44px;
+    width: 116px;
+    font-size: 12px;
+  }
+
+  .dragon-wrap {
+    width: min(100%, 286px);
+  }
+
+  .speech-bubble {
+    padding: 12px;
+  }
+
+  .speech-title {
+    font-size: 16px;
+  }
+
+  .speech-text {
+    font-size: 13px;
+  }
+
+  .secondary-actions {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .secondary-actions #skipButton {
+    grid-column: 1 / -1;
+  }
+
+  .language-dialog {
+    padding: 18px 12px 12px;
+  }
+}
+
+@media (max-width: 340px) {
+  .page-shell {
+    padding-inline: 7px;
+  }
+
+  .language-picker select {
+    width: 104px;
+    padding-inline: 7px 20px;
+  }
+
+  .guide-step,
+  .action-button {
+    padding-inline: 10px;
+  }
+}
