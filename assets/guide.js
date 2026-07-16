@@ -13,7 +13,7 @@
     ryczywol: "Ryczywół",
     zgorzelec_bogatynia: "Zgorzelec / Bogatynia"
   };
-  const BUILD = "20260716-dragon1";
+  const BUILD = "20260716-dragon2";
   const params = new URLSearchParams(window.location.search);
   const locationKey = params.get("location");
   const validLocation = Object.prototype.hasOwnProperty.call(TARGETS, locationKey);
