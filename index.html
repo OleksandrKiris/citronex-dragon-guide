@@ -8,7 +8,7 @@
   <title>CITRONEX | Przewodnik</title>
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="assets/brand/citronex-hydra-logo-web.png">
-  <link rel="stylesheet" href="assets/guide.css?v=20260716-dragon3">
+  <link rel="stylesheet" href="assets/guide.css?v=20260716-dragon4">
 </head>
 <body>
   <div class="page-shell">
@@ -57,8 +57,8 @@
             </defs>
             <ellipse cx="180" cy="270" rx="92" ry="11" fill="#2a1518" opacity=".12" />
             <g filter="url(#dragonShadow)" fill="url(#dragonRed)" stroke="#7f1220" stroke-width="3" stroke-linejoin="round">
-              <path d="M105 215 C67 189 53 150 73 118 C84 100 102 93 118 102 C97 119 98 140 113 154 C128 168 143 178 157 185 Z" />
-              <path d="M255 215 C293 189 307 150 287 118 C276 100 258 93 242 102 C263 119 262 140 247 154 C232 168 217 178 203 185 Z" />
+              <path class="dragon-wing dragon-wing-left" d="M105 215 C67 189 53 150 73 118 C84 100 102 93 118 102 C97 119 98 140 113 154 C128 168 143 178 157 185 Z" />
+              <path class="dragon-wing dragon-wing-right" d="M255 215 C293 189 307 150 287 118 C276 100 258 93 242 102 C263 119 262 140 247 154 C232 168 217 178 203 185 Z" />
               <path d="M109 139 C79 111 82 78 111 58 C101 44 103 27 119 15 C124 42 144 47 159 64 C169 55 191 55 201 64 C216 47 236 42 241 15 C257 27 259 44 249 58 C278 78 281 111 251 139 C234 155 224 171 222 194 C219 235 204 257 180 257 C156 257 141 235 138 194 C136 171 126 155 109 139 Z" />
               <path d="M123 91 C102 80 90 66 94 49 C110 56 124 63 137 76 Z" />
               <path d="M237 91 C258 80 270 66 266 49 C250 56 236 63 223 76 Z" />
@@ -67,7 +67,7 @@
               <path d="M155 145 C149 131 154 112 168 107 C174 105 180 109 180 115 C180 109 186 105 192 107 C206 112 211 131 205 145 C199 159 190 169 180 176 C170 169 161 159 155 145 Z" />
               <path d="M158 171 C151 189 157 204 180 212 C203 204 209 189 202 171 C195 181 189 186 180 188 C171 186 165 181 158 171 Z" fill="#f3a10b" stroke="#9c0c1b" />
             </g>
-            <g fill="#fff">
+            <g class="dragon-eyes" fill="#fff">
               <circle cx="168" cy="128" r="4" />
               <circle cx="192" cy="128" r="4" />
             </g>
@@ -75,7 +75,13 @@
               <circle cx="169" cy="129" r="1.6" />
               <circle cx="193" cy="129" r="1.6" />
             </g>
-            <path d="M166 151 Q180 160 194 151" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" />
+            <path class="dragon-mouth-smile" d="M166 151 Q180 160 194 151" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" />
+            <ellipse class="dragon-mouth-open" cx="180" cy="153" rx="9" ry="6" fill="#3d1619" opacity="0" />
+            <path class="dragon-mouth-tongue" d="M176 155 Q180 159 184 155" fill="none" stroke="#f3a10b" stroke-width="2" stroke-linecap="round" opacity="0" />
+            <g class="dragon-sparkles" fill="none" stroke="#eea817" stroke-width="3" stroke-linecap="round">
+              <path d="M46 111 L46 127 M38 119 L54 119" />
+              <path d="M314 145 L314 159 M307 152 L321 152" />
+            </g>
           </svg>
         </div>
         <div class="speech-bubble" aria-live="polite">
@@ -147,6 +153,6 @@
 
     <footer class="footer-note">CITRONEX · krótki przewodnik przed szkoleniem</footer>
   </div>
-  <script src="assets/guide.js?v=20260716-dragon3" defer></script>
+  <script src="assets/guide.js?v=20260716-dragon4" defer></script>
 </body>
 </html>

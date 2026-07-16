@@ -36,7 +36,7 @@ button { cursor: pointer; }
 .location-banner p { margin: 3px 0 0; color: var(--muted); font-size: .82rem; line-height: 1.35; }
 
 .dragon-stage { position: relative; display: grid; min-width: 0; gap: 0; justify-items: center; padding: 4px 0 0; }
-.dragon-wrap { width: min(100%, 340px); animation: floatDragon 4.5s ease-in-out infinite; transform-origin: center bottom; }
+.dragon-wrap { position: relative; width: min(100%, 340px); animation: floatDragon 4.5s ease-in-out infinite; transform-origin: center bottom; }
 .dragon { display: block; width: 100%; height: auto; }
 .speech-bubble { position: relative; display: flex; align-items: flex-start; gap: 10px; width: 100%; max-width: 100%; min-width: 0; padding: 15px 16px; border: 1px solid #f0d8d4; border-radius: 18px; background: var(--surface); box-shadow: var(--shadow); }
 .speech-bubble > div { min-width: 0; }
@@ -47,6 +47,18 @@ button { cursor: pointer; }
 .speech-text { margin: 6px 0 0; color: var(--muted); font-size: .88rem; line-height: 1.45; overflow-wrap: anywhere; word-break: break-word; }
 .dragon-wrap.is-speaking { animation-duration: 1.5s; }
 .dragon-wrap.is-speaking .dragon { filter: drop-shadow(0 0 16px rgba(238, 168, 23, .5)); }
+.dragon-wing { transform-box: fill-box; transform-origin: center; transition: transform .25s ease; }
+.dragon-wing-left { animation: wingIdleLeft 4.5s ease-in-out infinite; }
+.dragon-wing-right { animation: wingIdleRight 4.5s ease-in-out infinite; }
+.dragon-wrap.is-speaking .dragon-wing-left { animation: wingTalkLeft .8s ease-in-out infinite; }
+.dragon-wrap.is-speaking .dragon-wing-right { animation: wingTalkRight .8s ease-in-out infinite; }
+.dragon-eyes { transform-box: fill-box; transform-origin: center; animation: blinkDragon 5.5s ease-in-out infinite; }
+.dragon-mouth-open, .dragon-mouth-tongue { transition: opacity .16s ease; }
+.dragon-wrap.is-speaking .dragon-mouth-open { opacity: 1; animation: mouthTalk .4s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+.dragon-wrap.is-speaking .dragon-mouth-tongue { opacity: 1; }
+.dragon-wrap.is-speaking .dragon-mouth-smile { opacity: .25; }
+.dragon-sparkles { opacity: .25; animation: sparklePulse 2.2s ease-in-out infinite; }
+.dragon-wrap.is-speaking .dragon-sparkles { opacity: 1; animation-duration: .9s; }
 
 .guide-steps { display: grid; min-width: 0; gap: 9px; }
 .guide-step { display: grid; grid-template-columns: 32px minmax(0, 1fr); gap: 10px; align-items: start; padding: 11px 12px; border: 1px solid var(--line); border-radius: 15px; background: rgba(255, 255, 255, .83); transition: border-color .2s ease, background .2s ease, transform .2s ease; }
@@ -85,6 +97,13 @@ button { cursor: pointer; }
 .footer-note { padding: 18px 0 0; color: #9b8587; font-size: .68rem; text-align: center; }
 
 @keyframes floatDragon { 0%, 100% { transform: translateY(0) rotate(-1deg); } 50% { transform: translateY(-7px) rotate(1deg); } }
+@keyframes wingIdleLeft { 0%, 100% { transform: rotate(0deg); } 50% { transform: rotate(-2deg); } }
+@keyframes wingIdleRight { 0%, 100% { transform: rotate(0deg); } 50% { transform: rotate(2deg); } }
+@keyframes wingTalkLeft { 0%, 100% { transform: rotate(0deg); } 50% { transform: rotate(-6deg); } }
+@keyframes wingTalkRight { 0%, 100% { transform: rotate(0deg); } 50% { transform: rotate(6deg); } }
+@keyframes blinkDragon { 0%, 42%, 45%, 100% { transform: scaleY(1); } 43%, 44% { transform: scaleY(.12); } }
+@keyframes mouthTalk { 0%, 100% { transform: scaleY(.7); } 50% { transform: scaleY(1.15); } }
+@keyframes sparklePulse { 0%, 100% { transform: scale(.86); } 50% { transform: scale(1.08); } }
 @media (max-width: 380px) {
   .page-shell { padding-inline: 10px; }
   .topbar { gap: 8px; }
