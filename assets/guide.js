@@ -14,31 +14,67 @@
     zgorzelec_bogatynia: "Zgorzelec / Bogatynia"
   };
   const SPEECH_LABELS = {
-    pl: "TEKST NAGRANIA", en: "RECORDING TEXT", ua: "ТЕКСТ ЗАПИСУ", ru: "ТЕКСТ ЗАПИСИ", az: "SƏS YAZISININ MƏTNİ", es: "TEXTO DEL AUDIO", fil: "TEKSTO NG AUDIO", id: "TEKS REKAMAN", ne: "रेकर्डिङको पाठ"
-  };
+  "pl": "TEKST NAGRANIA",
+  "en": "RECORDING TEXT",
+  "ua": "ТЕКСТ АУДІО",
+  "ru": "ТЕКСТ АУДИО",
+  "az": "SƏS YAZISININ MƏTNİ",
+  "es": "TEXTO DEL AUDIO",
+  "fil": "TEKSTO NG AUDIO",
+  "id": "TEKS REKAMAN",
+  "ne": "अडियोको पाठ"
+};
   const SPOKEN_TRANSCRIPTS = {
-    pl: "To jest CITRONEX hydra S.R.Z.B. Tutaj wybierasz przyjazd do pracy albo swoją lokalizację pracy. Po kliknięciu otworzy się właściwe szkolenie: mapy, instrukcje, kontakty i ważne informacje.",
-    en: "This is CITRONEX hydra S.R.Z.B. Here you choose arrival to work or your work location. After choosing, the correct training will open: maps, instructions, contacts, and important information.",
-    ua: "Це CITRONEX hydra S.R.Z.B. Тут оберіть приїзд на роботу або свою робочу локацію. Після вибору відкриється потрібне навчання: карти, інструкції, контакти та важлива інформація.",
-    ru: "Это CITRONEX hydra S.R.Z.B. Здесь выберите приезд на работу или свою рабочую локацию. После выбора откроется нужное обучение: карты, инструкции, контакты и важная информация.",
-    az: "Bu CITRONEX hydra S.R.Z.B.-dir. Burada işə gəlişi və ya iş yerinizi seçirsiniz. Seçimdən sonra sizə uyğun təlim açılacaq: xəritələr, təlimatlar, kontaktlar və vacib məlumatlar.",
-    es: "Este es CITRONEX hydra S.R.Z.B. Aquí eliges la llegada al trabajo o tu ubicación de trabajo. Después se abrirá la formación correcta: mapas, instrucciones, contactos e información importante.",
-    fil: "Ito ang CITRONEX hydra S.R.Z.B. Dito pipiliin mo ang pagdating sa trabaho o ang iyong lokasyon sa trabaho. Pagkatapos, bubukas ang tamang training: mga mapa, instruksyon, kontak at mahalagang impormasyon.",
-    id: "Ini adalah CITRONEX hydra S.R.Z.B. Di sini Anda memilih kedatangan ke tempat kerja atau lokasi kerja Anda. Setelah itu akan terbuka pelatihan yang benar: peta, instruksi, kontak, dan informasi penting.",
-    ne: "यो CITRONEX hydra S.R.Z.B. हो। यहाँ तपाईं काममा आउने जानकारी वा आफ्नो काम गर्ने स्थान छान्नुहुन्छ। त्यसपछि सही तालिम खुल्छ: नक्सा, निर्देशन, सम्पर्क र महत्वपूर्ण जानकारी।"
-  };
+  "pl": "Witaj w systemie Citronex. Wybierz informacje o przyjeździe do pracy albo swoją lokalizację. Tutaj znajdziesz mapy, instrukcje, kontakty i ważne informacje.",
+  "en": "Welcome to the Citronex system. Choose arrival information or your work location. Here you will find maps, instructions, contacts and important information.",
+  "ua": "Вітаємо в системі Citronex. Виберіть інформацію про приїзд на роботу або свою локацією. Тут є карти, інструкції, контакти та важлива інформація.",
+  "ru": "Добро пожаловать в систему Citronex. Выберите информацию о приезде на работу или свою локацию. Здесь есть карты, инструкции, контакты и важная информация.",
+  "az": "Citronex sisteminə xoş gəlmisiniz. İşə gəliş məlumatını və ya iş yerinizi seçin. Burada xəritələr, təlimatlar, əlaqələr və vacib məlumatlar var.",
+  "es": "Bienvenido al sistema Citronex. Elige la información para llegar al trabajo o tu lugar de trabajo. Aquí encontrarás mapas, instrucciones, contactos e información importante.",
+  "fil": "Maligayang pagdating sa sistema ng Citronex. Piliin ang impormasyon sa pagpunta sa trabaho o ang lugar ng iyong trabaho. Nandito ang mga mapa, tagubilin, contact at mahalagang impormasyon.",
+  "id": "Selamat datang di sistem Citronex. Pilih informasi perjalanan ke tempat kerja atau lokasi kerja Anda. Di sini tersedia peta, petunjuk, kontak, dan informasi penting.",
+  "ne": "Citronex प्रणालीमा स्वागत छ। काममा आउने जानकारी वा आफ्नो कार्यस्थल छान्नुहोस्। यहाँ नक्सा, निर्देशन, सम्पर्क र महत्त्वपूर्ण जानकारी छन्।"
+};
   const TRANSLATION_REFINEMENTS = {
-    en: { second: ["NEXT", "Learn step by step", "Choose Reader, Tablet, Greenhouse, What is not allowed, or the information you need."] },
-    az: { third: ["SONDA", "Təlimə başlayın", "Bələdçidən sonra məkanınızın səhifəsi açılacaq."] },
-    es: { skip: "Omitir audio" },
-    fil: { second: ["SUNOD", "Matuto nang sunod-sunod", "Piliin ang Reader, Tablet, greenhouse, Mga Bawal, o ang impormasyong kailangan mo."], skip: "Laktawan ang audio", fallback: "Hindi muna available ang audio. Makikita pa rin ang teksto ng gabay." },
-    ne: { second: ["त्यसपछि", "क्रमशः सिक्नुहोस्", "Reader, Tablet, ग्रीनहाउस, नियम र निषेध, वा आवश्यक जानकारी छान्नुहोस्।"] }
-  };
+  "en": {
+    "second": [
+      "NEXT",
+      "Learn step by step",
+      "Choose Reader, Tablet, Greenhouse, What is not allowed, or the information you need."
+    ]
+  },
+  "az": {
+    "third": [
+      "SONRA",
+      "Addım-addım öyrənin",
+      "Gəldikdən sonra məkanınızın səhifəsi açılacaq."
+    ]
+  },
+  "es": {
+    "skip": "Omitir audio"
+  },
+  "fil": {
+    "second": [
+      "SUNOD",
+      "Matuto nang sunod-sunod",
+      "Piliin ang Reader, Tablet, greenhouse, Mga Bawal, o ang impormasyong kailangan mo."
+    ],
+    "skip": "Laktawan ang audio",
+    "fallback": "Hindi muna available ang audio. Makikita pa rin ang teksto ng gabay."
+  },
+  "ne": {
+    "second": [
+      "अर्को",
+      "चरणबद्ध रूपमा सिक्नुहोस्",
+      "Reader, Tablet, ग्रीनहाउस, निषेधित वस्तु वा आवश्यक जानकारी छान्नुहोस्।"
+    ]
+  }
+};
   const SPEECH_LOCALES = { pl: "pl-PL", en: "en-US", ua: "uk-UA", ru: "ru-RU", az: "az-AZ", es: "es-ES", fil: "fil-PH", id: "id-ID", ne: "ne-NP" };
   const VOICE_PROFILES = {
-    pl: { rate: .78, pitch: 1 }, en: { rate: .82, pitch: 1 }, ua: { rate: .76, pitch: 1 },
-    ru: { rate: .76, pitch: 1 }, az: { rate: .72, pitch: 1 }, es: { rate: .80, pitch: 1 },
-    fil: { rate: .76, pitch: 1 }, id: { rate: .76, pitch: 1 }, ne: { rate: .70, pitch: 1 }
+    pl: { rate: .94, pitch: 1 }, en: { rate: .96, pitch: 1 }, ua: { rate: .92, pitch: 1 },
+    ru: { rate: .92, pitch: 1 }, az: { rate: .94, pitch: 1 }, es: { rate: .96, pitch: 1 },
+    fil: { rate: .94, pitch: 1 }, id: { rate: .94, pitch: 1 }, ne: { rate: .90, pitch: 1 }
   };
   function findVoice(locale) {
     const voices = window.speechSynthesis?.getVoices?.() || [];
@@ -77,17 +113,215 @@
     window.setTimeout(finish, 450);
   }
   const SHORT_SCREEN_COPY = {
-    pl: { hint: "Krótki przewodnik.", title: "Witaj!", intro: "Wybierz język i rozpocznij.", gate: "Smok pokaże Ci, co zrobić.", steps: [["1", "Wybierz miejsce", "Mapa pracy."], ["2", "Posłuchaj", "Krótka instrukcja."], ["3", "Przejdź dalej", "Otworzy się lokalizacja."]] },
-    en: { hint: "A short guide.", title: "Welcome!", intro: "Choose a language and start.", gate: "The dragon will show you what to do.", steps: [["1", "Choose a place", "Work map."], ["2", "Listen", "A short guide."], ["3", "Continue", "Your location will open."]] },
-    ua: { hint: "Короткий інструктаж.", title: "Вітаю!", intro: "Оберіть мову та почніть.", gate: "Дракон покаже, що робити.", steps: [["1", "Оберіть місце", "Карта роботи."], ["2", "Послухайте", "Короткий інструктаж."], ["3", "Перейдіть далі", "Відкриється локація."]] },
-    ru: { hint: "Короткий инструктаж.", title: "Привет!", intro: "Выберите язык и начните.", gate: "Дракон покажет, что делать.", steps: [["1", "Выберите место", "Карта работы."], ["2", "Послушайте", "Короткий инструктаж."], ["3", "Перейдите дальше", "Откроется локация."]] },
-    az: { hint: "Qısa bələdçi.", title: "Salam!", intro: "Dil seçin və başlayın.", gate: "Əjdaha nə etməli olduğunuzu göstərəcək.", steps: [["1", "Məkan seçin", "İş xəritəsi."], ["2", "Qulaq asın", "Qısa bələdçi."], ["3", "Davam edin", "Məkan açılacaq."]] },
-    es: { hint: "Guía breve.", title: "¡Hola!", intro: "Elige un idioma y empieza.", gate: "El dragón te mostrará qué hacer.", steps: [["1", "Elige un lugar", "Mapa de trabajo."], ["2", "Escucha", "Guía breve."], ["3", "Continúa", "Se abrirá tu ubicación."]] },
-    fil: { hint: "Maikling gabay.", title: "Kumusta!", intro: "Pumili ng wika at magsimula.", gate: "Ipapakita ng dragon ang dapat gawin.", steps: [["1", "Pumili ng lugar", "Mapa ng trabaho."], ["2", "Makinig", "Maikling gabay."], ["3", "Magpatuloy", "Bubukas ang lokasyon."]] },
-    id: { hint: "Panduan singkat.", title: "Selamat datang!", intro: "Pilih bahasa dan mulai.", gate: "Naga akan menunjukkan apa yang harus dilakukan.", steps: [["1", "Pilih tempat", "Peta kerja."], ["2", "Dengarkan", "Panduan singkat."], ["3", "Lanjutkan", "Lokasi akan terbuka."]] },
-    ne: { hint: "छोटो मार्गदर्शन।", title: "स्वागत छ!", intro: "भाषा छान्नुहोस् र सुरु गर्नुहोस्।", gate: "ड्रागनले के गर्ने देखाउनेछ।", steps: [["1", "स्थान छान्नुहोस्", "कामको नक्सा।"], ["2", "सुन्नुहोस्", "छोटो मार्गदर्शन।"], ["3", "अगाडि बढ्नुहोस्", "स्थान खुल्नेछ।"]] }
-  };
-  const BUILD = "20260716-dragon9";
+  "pl": {
+    "hint": "Krótki przewodnik.",
+    "title": "Witaj!",
+    "intro": "Wybierz język i rozpocznij.",
+    "gate": "Smok pokaże Ci, co zrobić.",
+    "steps": [
+      [
+        "1",
+        "Wybierz miejsce",
+        "Mapa pracy."
+      ],
+      [
+        "2",
+        "Posłuchaj",
+        "Krótka instrukcja."
+      ],
+      [
+        "3",
+        "Przejdź dalej",
+        "Otworzy się lokalizacja."
+      ]
+    ]
+  },
+  "en": {
+    "hint": "A short guide.",
+    "title": "Welcome!",
+    "intro": "Choose a language and start.",
+    "gate": "The dragon will show you what to do.",
+    "steps": [
+      [
+        "1",
+        "Choose a place",
+        "Work map."
+      ],
+      [
+        "2",
+        "Listen",
+        "A short guide."
+      ],
+      [
+        "3",
+        "Continue",
+        "Your location will open."
+      ]
+    ]
+  },
+  "ua": {
+    "hint": "Короткий гід.",
+    "title": "Вітаємо!",
+    "intro": "Оберіть мову та почніть.",
+    "gate": "Дракон покаже, що робити.",
+    "steps": [
+      [
+        "1",
+        "Оберіть місце",
+        "Карта роботи."
+      ],
+      [
+        "2",
+        "Послухайте",
+        "Коротка інструкція."
+      ],
+      [
+        "3",
+        "Перейдіть далі",
+        "Відкриється локація."
+      ]
+    ]
+  },
+  "ru": {
+    "hint": "Короткий гид.",
+    "title": "Добро пожаловать!",
+    "intro": "Выберите язык и начните.",
+    "gate": "Дракон покажет, что делать.",
+    "steps": [
+      [
+        "1",
+        "Выберите место",
+        "Карта работы."
+      ],
+      [
+        "2",
+        "Послушайте",
+        "Короткая инструкция."
+      ],
+      [
+        "3",
+        "Перейдите дальше",
+        "Откроется локация."
+      ]
+    ]
+  },
+  "az": {
+    "hint": "Qısa bələdçi.",
+    "title": "Salam!",
+    "intro": "Dil seçin və başlayın.",
+    "gate": "Əjdaha nə etməli olduğunuzu göstərəcək.",
+    "steps": [
+      [
+        "1",
+        "Məkan seçin",
+        "İş xəritəsi."
+      ],
+      [
+        "2",
+        "Qulaq asın",
+        "Qısa bələdçi."
+      ],
+      [
+        "3",
+        "Davam edin",
+        "Məkan açılacaq."
+      ]
+    ]
+  },
+  "es": {
+    "hint": "Guía breve.",
+    "title": "¡Hola!",
+    "intro": "Elige un idioma y empieza.",
+    "gate": "El dragón te mostrará qué hacer.",
+    "steps": [
+      [
+        "1",
+        "Elige un lugar",
+        "Mapa de trabajo."
+      ],
+      [
+        "2",
+        "Escucha",
+        "Guía breve."
+      ],
+      [
+        "3",
+        "Continúa",
+        "Se abrirá tu ubicación."
+      ]
+    ]
+  },
+  "fil": {
+    "hint": "Maikling gabay.",
+    "title": "Kumusta!",
+    "intro": "Pumili ng wika at magsimula.",
+    "gate": "Ipapakita ng dragon ang dapat gawin.",
+    "steps": [
+      [
+        "1",
+        "Pumili ng lugar",
+        "Mapa ng trabaho."
+      ],
+      [
+        "2",
+        "Makinig",
+        "Maikling gabay."
+      ],
+      [
+        "3",
+        "Magpatuloy",
+        "Bubukas ang lokasyon."
+      ]
+    ]
+  },
+  "id": {
+    "hint": "Panduan singkat.",
+    "title": "Selamat datang!",
+    "intro": "Pilih bahasa dan mulai.",
+    "gate": "Naga akan menunjukkan apa yang harus dilakukan.",
+    "steps": [
+      [
+        "1",
+        "Pilih tempat",
+        "Peta kerja."
+      ],
+      [
+        "2",
+        "Dengarkan",
+        "Panduan singkat."
+      ],
+      [
+        "3",
+        "Lanjutkan",
+        "Lokasi akan terbuka."
+      ]
+    ]
+  },
+  "ne": {
+    "hint": "छोटो मार्गदर्शन?",
+    "title": "स्वागत छ!",
+    "intro": "भाषा छान्नुहोस् र सुरु गर्नुहोस्?",
+    "gate": "ड्रागनले के गर्ने भनेर देखाउनेछ?",
+    "steps": [
+      [
+        "1",
+        "स्थान छान्नुहोस्",
+        "कामको नक्सा?"
+      ],
+      [
+        "2",
+        "सुन्नुहोस्",
+        "छोटो निर्देशन?"
+      ],
+      [
+        "3",
+        "अगाडि बढ्नुहोस्",
+        "तपाईंको स्थान खुल्नेछ?"
+      ]
+    ]
+  }
+};
+  const BUILD = "20260716-voice1";
   const params = new URLSearchParams(window.location.search);
   const locationKey = params.get("location");
   const validLocation = Object.prototype.hasOwnProperty.call(TARGETS, locationKey);
