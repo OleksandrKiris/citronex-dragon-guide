@@ -1,0 +1,12 @@
+CITRONEX - PRZEWODNIK SMOKA
+
+1. Zmien pliki tylko w tym repozytorium.
+2. Przed publikacja sprawdz adres:
+   index.html?location=siechnice&lang=pl&welcome=1
+3. Dostepne lokalizacje:
+   siechnice
+   ryczywol
+   zgorzelec_bogatynia
+4. Dostepne jezyki:
+   pl, en, ua, ru, az, es, fil, id, ne
+5. Po zmianie zwieksz wersje BUILD w assets/guide.js, wersje CSS/JS w index.html i CACHE_NAME w sw.js.

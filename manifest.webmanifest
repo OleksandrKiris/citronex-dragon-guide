@@ -1,0 +1,14 @@
+{
+  "name": "CITRONEX - przewodnik",
+  "short_name": "CITRONEX",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#fffaf7",
+  "theme_color": "#b81424",
+  "icons": [{
+    "src": "assets/brand/citronex-hydra-logo-web.png",
+    "sizes": "1024x1024",
+    "type": "image/png",
+    "purpose": "any maskable"
+  }]
+}
