@@ -46,14 +46,24 @@
     id: { hint: "Panduan singkat.", title: "Selamat datang!", intro: "Pilih bahasa dan mulai.", gate: "Naga akan menunjukkan apa yang harus dilakukan.", steps: [["1", "Pilih tempat", "Peta kerja."], ["2", "Dengarkan", "Panduan singkat."], ["3", "Lanjutkan", "Lokasi akan terbuka."]] },
     ne: { hint: "छोटो मार्गदर्शन।", title: "स्वागत छ!", intro: "भाषा छान्नुहोस् र सुरु गर्नुहोस्।", gate: "ड्रागनले के गर्ने देखाउनेछ।", steps: [["1", "स्थान छान्नुहोस्", "कामको नक्सा।"], ["2", "सुन्नुहोस्", "छोटो मार्गदर्शन।"], ["3", "अगाडि बढ्नुहोस्", "स्थान खुल्नेछ।"]] }
   };
-  const BUILD = "20260716-dragon6";
+  const BUILD = "20260716-dragon7";
   const params = new URLSearchParams(window.location.search);
   const locationKey = params.get("location");
   const validLocation = Object.prototype.hasOwnProperty.call(TARGETS, locationKey);
   const forceGuide = params.get("welcome") === "1";
   const queryLang = LANGS.includes(params.get("lang")) ? params.get("lang") : "";
   const storedLang = LANGS.includes(localStorage.getItem("cxDragonGuide:lang")) ? localStorage.getItem("cxDragonGuide:lang") : "";
-  let lang = queryLang || storedLang || "pl";
+  function detectBrowserLanguage() {
+    const candidates = [navigator.language, ...(Array.isArray(navigator.languages) ? navigator.languages : [])];
+    for (const raw of candidates) {
+      const primary = String(raw || "").toLowerCase().split(/[-_]/)[0];
+      const normalized = primary === "uk" ? "ua" : primary;
+      if (LANGS.includes(normalized)) return normalized;
+    }
+    return "en";
+  }
+  const browserLang = detectBrowserLanguage();
+  let lang = queryLang || storedLang || browserLang;
   let audioSourceReady = false;
   let speechFallbackActive = false;
   let redirectTimer = null;
@@ -88,7 +98,7 @@
   function setText(id, value) { const node = $(id); if (node) node.textContent = value; }
 
   function applyLanguage(nextLang) {
-    lang = LANGS.includes(nextLang) ? nextLang : "pl";
+    lang = LANGS.includes(nextLang) ? nextLang : "en";
     localStorage.setItem("cxDragonGuide:lang", lang);
     document.documentElement.lang = lang === "ua" ? "uk" : lang;
     languageSelect.value = lang;
