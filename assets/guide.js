@@ -35,6 +35,17 @@
   "id": "Selamat datang. Ini sistem Citronex. Saya pemandu Anda. Pilih bahasa. Lalu pilih tempat kerja. Di sini ada peta, petunjuk, kontak, dan aturan. Mari kita mulai.",
   "ne": "स्वागत छ। यो Citronex प्रणाली हो। म तपाईंको मार्गदर्शक हुँ\u0964 आफ्नो भाषा छान्नुहोस्। त्यसपछि काम गर्ने ठाउँ छान्नुहोस्। यहाँ नक्सा, निर्देशन, सम्पर्क र नियमहरू छन्। सुरु गरौँ।"
 };
+  const CLEAR_SPOKEN_TRANSCRIPTS = {
+    "pl": "Witaj. To jest system Citronex. Jestem Twoim przewodnikiem. Wybierz j\\u0119zyk. Nast\\u0119pnie wybierz miejsce pracy. Znajdziesz tutaj mapy, instrukcje, kontakty i zasady. Zaczynamy.",
+    "en": "Welcome. This is the Citronex system. I am your guide. Choose a language. Next, choose your workplace. Here you will find maps, instructions, contacts, and rules. Let us begin.",
+    "ua": "\\u0412\\u0456\\u0442\\u0430\\u044e. \\u0426\\u0435 \\u0441\\u0438\\u0441\\u0442\\u0435\\u043c\\u0430 Citronex. \\u042f \\u0432\\u0430\\u0448 \\u0433\\u0456\\u0434. \\u041e\\u0431\\u0435\\u0440\\u0456\\u0442\\u044c \\u043c\\u043e\\u0432\\u0443. \\u041f\\u043e\\u0442\\u0456\\u043c \\u043e\\u0431\\u0435\\u0440\\u0456\\u0442\\u044c \\u043c\\u0456\\u0441\\u0446\\u0435 \\u0440\\u043e\\u0431\\u043e\\u0442\\u0438. \\u0422\\u0443\\u0442 \\u0454 \\u043a\\u0430\\u0440\\u0442\\u0438, \\u0456\\u043d\\u0441\\u0442\\u0440\\u0443\\u043a\\u0446\\u0456\\u0457, \\u043a\\u043e\\u043d\\u0442\\u0430\\u043a\\u0442\\u0438 \\u0442\\u0430 \\u043f\\u0440\\u0430\\u0432\\u0438\\u043b\\u0430. \\u041f\\u043e\\u0447\\u043d\\u0456\\u043c\\u043e.",
+    "ru": "\\u0417\\u0434\\u0440\\u0430\\u0432\\u0441\\u0442\\u0432\\u0443\\u0439\\u0442\\u0435. \\u042d\\u0442\\u043e \\u0441\\u0438\\u0441\\u0442\\u0435\\u043c\\u0430 Citronex. \\u042f \\u0432\\u0430\\u0448 \\u043f\\u043e\\u043c\\u043e\\u0449\\u043d\\u0438\\u043a. \\u0412\\u044b\\u0431\\u0435\\u0440\\u0438\\u0442\\u0435 \\u044f\\u0437\\u044b\\u043a. \\u0417\\u0430\\u0442\\u0435\\u043c \\u0432\\u044b\\u0431\\u0435\\u0440\\u0438\\u0442\\u0435 \\u043c\\u0435\\u0441\\u0442\\u043e \\u0440\\u0430\\u0431\\u043e\\u0442\\u044b. \\u0417\\u0434\\u0435\\u0441\\u044c \\u0435\\u0441\\u0442\\u044c \\u043a\\u0430\\u0440\\u0442\\u044b, \\u0438\\u043d\\u0441\\u0442\\u0440\\u0443\\u043a\\u0446\\u0438\\u0438, \\u043a\\u043e\\u043d\\u0442\\u0430\\u043a\\u0442\\u044b \\u0438 \\u043f\\u0440\\u0430\\u0432\\u0438\\u043b\\u0430. \\u041d\\u0430\\u0447\\u043d\\u0451\\u043c.",
+    "az": "Salam. Bu, Citronex sistemidir. M\\u0259n sizin b\\u0259l\\u0259d\\u00e7iniz\\u0259m. Dil se\\u00e7in. Sonra i\\u015f yerinizi se\\u00e7in. Burada x\\u0259rit\\u0259l\\u0259r, t\\u0259limatlar, \\u0259laq\\u0259 n\\u00f6mr\\u0259l\\u0259ri v\\u0259 qaydalar var. Ba\\u015flayaq.",
+    "es": "Bienvenido. Este es el sistema Citronex. Soy tu gu\\u00eda. Elige un idioma. Despu\\u00e9s, elige tu lugar de trabajo. Aqu\\u00ed encontrar\\u00e1s mapas, instrucciones, contactos y normas. Empecemos.",
+    "fil": "Maligayang pagdating. Ito ang sistema ng Citronex. Ako ang iyong gabay. Piliin ang wika. Pagkatapos, piliin ang lugar ng iyong trabaho. Narito ang mga mapa, tagubilin, contact, at patakaran. Magsimula na tayo.",
+    "id": "Selamat datang. Ini adalah sistem Citronex. Saya pemandu Anda. Pilih bahasa. Selanjutnya, pilih tempat kerja Anda. Di sini ada peta, petunjuk, kontak, dan aturan. Mari kita mulai.",
+    "ne": "\\u0938\\u094d\\u0935\\u093e\\u0917\\u0924 \\u091b\\u0964 \\u092f\\u094b Citronex \\u092a\\u094d\\u0930\\u0923\\u093e\\u0932\\u0940 \\u0939\\u094b\\u0964 \\u092e \\u0924\\u092a\\u093e\\u0908\\u0902\\u0915\\u094b \\u092e\\u093e\\u0930\\u094d\\u0917\\u0926\\u0930\\u094d\\u0936\\u0915 \\u0939\\u0941\\u0901\\u0964 \\u0906\\u092b\\u094d\\u0928\\u094b \\u092d\\u093e\\u0937\\u093e \\u091b\\u093e\\u0928\\u094d\\u0928\\u0941\\u0939\\u094b\\u0938\\u094d\\u0964 \\u0924\\u094d\\u092f\\u0938\\u092a\\u091b\\u093f \\u0915\\u093e\\u092e \\u0917\\u0930\\u094d\\u0928\\u0947 \\u0920\\u093e\\u0909\\u0901 \\u091b\\u093e\\u0928\\u094d\\u0928\\u0941\\u0939\\u094b\\u0938\\u094d\\u0964 \\u092f\\u0939\\u093e\\u0901 \\u0928\\u0915\\u094d\\u0938\\u093e, \\u0928\\u093f\\u0930\\u094d\\u0926\\u0947\\u0936\\u0928, \\u0938\\u092e\\u094d\\u092a\\u0930\\u094d\\u0915 \\u0930 \\u0928\\u093f\\u092f\\u092e\\u0939\\u0930\\u0942 \\u091b\\u0928\\u094d\\u0964 \\u0938\\u0941\\u0930\\u0941 \\u0917\\u0930\\u094c\\u0902.",
+  };
   const TRANSLATION_REFINEMENTS = {
   "en": {
     "second": [
@@ -72,9 +83,9 @@
 };
   const SPEECH_LOCALES = { pl: "pl-PL", en: "en-US", ua: "uk-UA", ru: "ru-RU", az: "az-AZ", es: "es-ES", fil: "fil-PH", id: "id-ID", ne: "ne-NP" };
   const VOICE_PROFILES = {
-    pl: { rate: .90, pitch: 1 }, en: { rate: .92, pitch: 1 }, ua: { rate: .88, pitch: 1 },
-    ru: { rate: .88, pitch: 1 }, az: { rate: .90, pitch: 1 }, es: { rate: .92, pitch: 1 },
-    fil: { rate: .90, pitch: 1 }, id: { rate: .90, pitch: 1 }, ne: { rate: .86, pitch: 1 }
+    pl: { rate: .80, pitch: 1 }, en: { rate: .82, pitch: 1 }, ua: { rate: .78, pitch: 1 },
+    ru: { rate: .78, pitch: 1 }, az: { rate: .80, pitch: 1 }, es: { rate: .82, pitch: 1 },
+    fil: { rate: .80, pitch: 1 }, id: { rate: .80, pitch: 1 }, ne: { rate: .76, pitch: 1 }
   };
   function findVoice(locale) {
     const voices = window.speechSynthesis?.getVoices?.() || [];
@@ -321,7 +332,7 @@
     ]
   }
 };
-  const BUILD = "20260717-voice4";
+  const BUILD = "20260717-voice5";
   const params = new URLSearchParams(window.location.search);
   const locationKey = params.get("location");
   const validLocation = Object.prototype.hasOwnProperty.call(TARGETS, locationKey);
@@ -384,7 +395,7 @@
     setText("locationHint", shortCopy.hint);
     setText("guideTitle", shortCopy.title);
     setText("speechLabel", SPEECH_LABELS[lang] || SPEECH_LABELS.pl);
-    setText("speechText", SPOKEN_TRANSCRIPTS[lang] || SPOKEN_TRANSCRIPTS.en);
+      setText("speechText", CLEAR_SPOKEN_TRANSCRIPTS[lang] || CLEAR_SPOKEN_TRANSCRIPTS.en);
     [["step1Kicker", "step1Title", "step1Text"], ["step2Kicker", "step2Title", "step2Text"], ["step3Kicker", "step3Title", "step3Text"]].forEach((ids, index) => { const values = shortCopy.steps[index]; ids.forEach((id, valueIndex) => setText(id, values[valueIndex])); });
     startButton.textContent = copy.start;
     openButton.textContent = copy.open;
@@ -430,7 +441,7 @@
     stopSpeechFallback();
     speechFallbackActive = true;
     const shortCopy = SHORT_SCREEN_COPY[lang] || SHORT_SCREEN_COPY.pl;
-    const phrases = [SPOKEN_TRANSCRIPTS[lang] || SPOKEN_TRANSCRIPTS.en];
+    const phrases = [CLEAR_SPOKEN_TRANSCRIPTS[lang] || CLEAR_SPOKEN_TRANSCRIPTS.en];
     const locale = SPEECH_LOCALES[lang] || "en-US";
     const profile = VOICE_PROFILES[lang] || VOICE_PROFILES.en;
     waitForVoice(locale, (voice) => {

@@ -4,11 +4,11 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#b81424">
-  <meta name="description" content="CITRONEX - krótki przewodnik przed szkoleniem lokalizacyjnym.">
+  <meta name="description" content="CITRONEX - krĂłtki przewodnik przed szkoleniem lokalizacyjnym.">
   <title>CITRONEX | Przewodnik</title>
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="assets/brand/citronex-hydra-logo-web.png">
-  <link rel="stylesheet" href="assets/guide.css?v=20260717-voice4-dragon">
+  <link rel="stylesheet" href="assets/guide.css?v=20260717-voice5-dragon">
 </head>
 <body>
   <div class="page-shell">
@@ -18,28 +18,28 @@
         <span class="brand-name">CITRONEX</span>
       </a>
       <label class="language-picker">
-        <span id="languageLabel" class="sr-only">Wybierz język</span>
+        <span id="languageLabel" class="sr-only">Wybierz jÄ™zyk</span>
         <select id="languageSelect" aria-labelledby="languageLabel">
           <option value="pl">Polski</option>
           <option value="en">English</option>
-          <option value="ua">Українська</option>
-          <option value="ru">Русский</option>
-          <option value="az">Azərbaycanca</option>
-          <option value="es">Español</option>
+          <option value="ua">ĐŁĐşŃ€Đ°Ń—Đ˝ŃŃŚĐşĐ°</option>
+          <option value="ru">Đ ŃŃŃĐşĐ¸Đą</option>
+          <option value="az">AzÉ™rbaycanca</option>
+          <option value="es">EspaĂ±ol</option>
           <option value="fil">Filipino</option>
           <option value="id">Bahasa Indonesia</option>
-          <option value="ne">नेपाली</option>
+          <option value="ne">ŕ¤¨ŕĄ‡ŕ¤Şŕ¤ľŕ¤˛ŕĄ€</option>
         </select>
       </label>
     </header>
 
     <main id="guideApp" class="guide-app" hidden>
       <section class="location-banner" aria-live="polite">
-        <span class="location-icon" aria-hidden="true">⌖</span>
+        <span class="location-icon" aria-hidden="true">âŚ–</span>
         <div>
           <span id="locationLabel" class="eyebrow">LOKALIZACJA</span>
           <strong id="locationName">Siechnice</strong>
-          <p id="locationHint">Krótki przewodnik przed rozpoczęciem szkolenia.</p>
+          <p id="locationHint">KrĂłtki przewodnik przed rozpoczÄ™ciem szkolenia.</p>
         </div>
       </section>
 
@@ -99,22 +99,22 @@
         <div>
             <span id="speechLabel" class="speech-label">TEKST NAGRANIA</span>
             <p id="guideTitle" class="speech-title">Witaj!</p>
-            <p id="speechText" class="speech-text">Wybierz język i rozpocznij.</p>
+            <p id="speechText" class="speech-text">Wybierz jÄ™zyk i rozpocznij.</p>
           </div>
         </div>
       </section>
 
       <section class="guide-actions" aria-label="Sterowanie przewodnikiem">
         <div class="primary-actions">
-          <button id="startButton" class="action-button action-primary" type="button">Posłuchaj i rozpocznij</button>
-          <button id="openButton" class="action-button action-primary" type="button" hidden>Otwórz szkolenie</button>
+          <button id="startButton" class="action-button action-primary" type="button">PosĹ‚uchaj i rozpocznij</button>
+          <button id="openButton" class="action-button action-primary" type="button" hidden>OtwĂłrz szkolenie</button>
         </div>
         <div class="secondary-actions">
           <button id="pauseButton" class="action-button action-secondary" type="button" hidden>Pauza</button>
-          <button id="replayButton" class="action-button action-secondary" type="button" hidden>Powtórz</button>
-          <button id="skipButton" class="action-button action-secondary" type="button">Pomiń głos</button>
+          <button id="replayButton" class="action-button action-secondary" type="button" hidden>PowtĂłrz</button>
+          <button id="skipButton" class="action-button action-secondary" type="button">PomiĹ„ gĹ‚os</button>
         </div>
-        <p id="audioStatus" class="audio-status" role="status">Wybierz język.</p>
+        <p id="audioStatus" class="audio-status" role="status">Wybierz jÄ™zyk.</p>
         <audio id="guideAudio" preload="none"></audio>
       </section>
     </main>
@@ -122,32 +122,32 @@
     <section id="invalidState" class="invalid-state" hidden>
       <div class="invalid-icon" aria-hidden="true">!</div>
       <h1>Nie wybrano lokalizacji</h1>
-      <p>Wróć do głównego portalu CITRONEX i wybierz miejsce pracy.</p>
-      <a class="action-button action-primary" href="https://oleksandrkiris.github.io/citronex-hydra-project/">Wróć do portalu</a>
+      <p>WrĂłÄ‡ do gĹ‚Ăłwnego portalu CITRONEX i wybierz miejsce pracy.</p>
+      <a class="action-button action-primary" href="https://oleksandrkiris.github.io/citronex-hydra-project/">WrĂłÄ‡ do portalu</a>
     </section>
 
     <div id="languageGate" class="language-gate" hidden>
       <div class="language-dialog" role="dialog" aria-modal="true" aria-labelledby="gateTitle">
         <img class="gate-logo" src="assets/brand/citronex-hydra-logo-web.png" alt="CITRONEX">
         <p class="eyebrow">CITRONEX</p>
-        <h1 id="gateTitle">Wybierz język</h1>
-        <p id="gateText">Smok pokaże Ci, co zrobić.</p>
+        <h1 id="gateTitle">Wybierz jÄ™zyk</h1>
+        <p id="gateText">Smok pokaĹĽe Ci, co zrobiÄ‡.</p>
         <div class="language-grid">
           <button type="button" data-gate-lang="pl">Polski</button>
           <button type="button" data-gate-lang="en">English</button>
-          <button type="button" data-gate-lang="ua">Українська</button>
-          <button type="button" data-gate-lang="ru">Русский</button>
-          <button type="button" data-gate-lang="az">Azərbaycanca</button>
-          <button type="button" data-gate-lang="es">Español</button>
+          <button type="button" data-gate-lang="ua">ĐŁĐşŃ€Đ°Ń—Đ˝ŃŃŚĐşĐ°</button>
+          <button type="button" data-gate-lang="ru">Đ ŃŃŃĐşĐ¸Đą</button>
+          <button type="button" data-gate-lang="az">AzÉ™rbaycanca</button>
+          <button type="button" data-gate-lang="es">EspaĂ±ol</button>
           <button type="button" data-gate-lang="fil">Filipino</button>
           <button type="button" data-gate-lang="id">Bahasa Indonesia</button>
-          <button type="button" data-gate-lang="ne">नेपाली</button>
+          <button type="button" data-gate-lang="ne">ŕ¤¨ŕĄ‡ŕ¤Şŕ¤ľŕ¤˛ŕĄ€</button>
         </div>
       </div>
     </div>
 
-    <footer class="footer-note">CITRONEX · krótki przewodnik przed szkoleniem</footer>
+    <footer class="footer-note">CITRONEX Â· krĂłtki przewodnik przed szkoleniem</footer>
   </div>
-  <script src="assets/guide.js?v=20260717-voice4-dragon" defer></script>
+  <script src="assets/guide.js?v=20260717-voice5-dragon" defer></script>
 </body>
 </html>
