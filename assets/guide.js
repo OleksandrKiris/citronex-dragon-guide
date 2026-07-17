@@ -332,10 +332,12 @@
     ]
   }
 };
-  const BUILD = "20260717-voice6";
+  const BUILD = "20260717-generic-guide";
   const params = new URLSearchParams(window.location.search);
   const locationKey = params.get("location");
-  const validLocation = Object.prototype.hasOwnProperty.call(TARGETS, locationKey);
+  const hasLocation = Object.prototype.hasOwnProperty.call(TARGETS, locationKey);
+  const genericGuide = !locationKey;
+  const validLocation = hasLocation || genericGuide;
   const forceGuide = params.get("welcome") === "1";
   const queryLang = LANGS.includes(params.get("lang")) ? params.get("lang") : "";
   const storedLang = LANGS.includes(localStorage.getItem("cxDragonGuide:lang")) ? localStorage.getItem("cxDragonGuide:lang") : "";
@@ -410,6 +412,11 @@
   function setGateVisible(visible) { languageGate.hidden = !visible; if (visible) languageGate.querySelector("button")?.focus(); }
 
   function targetUrl() {
+    if (genericGuide) {
+      const portal = new URL("https://oleksandrkiris.github.io/citronex-hydra-project/");
+      portal.searchParams.set("lang", lang);
+      return portal.toString();
+    }
     const target = new URL(TARGETS[locationKey]);
     target.searchParams.set("lang", lang);
     target.searchParams.set("from", "dragon");
@@ -419,11 +426,11 @@
 
   function finishAndOpen() {
     if (!validLocation) return;
-    localStorage.setItem(`cxDragonGuide:${locationKey}:seen:${BUILD}`, "1");
+    if (hasLocation) localStorage.setItem(`cxDragonGuide:${locationKey}:seen:${BUILD}`, "1");
     window.location.assign(targetUrl());
   }
 
-  function wasSeen() { return localStorage.getItem(`cxDragonGuide:${locationKey}:seen:${BUILD}`) === "1"; }
+  function wasSeen() { return hasLocation && localStorage.getItem(`cxDragonGuide:${locationKey}:seen:${BUILD}`) === "1"; }
 
   function setSpeaking(active) { dragonWrap.classList.toggle("is-speaking", active); }
 
@@ -526,7 +533,7 @@
 
   if (!validLocation) {
     invalidState.hidden = false;
-  } else if (wasSeen() && !forceGuide) {
+  } else if (hasLocation && wasSeen() && !forceGuide) {
     document.body.classList.add("is-redirecting");
     window.setTimeout(finishAndOpen, 80);
   } else {
