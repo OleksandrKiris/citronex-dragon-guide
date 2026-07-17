@@ -1,10 +1,10 @@
 const CACHE_PREFIX = "citronex-dragon-guide-";
-const CACHE_NAME = CACHE_PREFIX + "20260717-generic-guide-dragon";
+const CACHE_NAME = CACHE_PREFIX + "20260717-location-copy-dragon";
 const CORE_ASSETS = [
   "./",
   "./index.html",
-  "./assets/guide.css?v=20260717-generic-guide-dragon",
-  "./assets/guide.js?v=20260717-generic-guide-dragon",
+  "./assets/guide.css?v=20260717-location-copy-dragon",
+  "./assets/guide.js?v=20260717-location-copy-dragon",
   "./manifest.webmanifest",
   "./assets/brand/citronex-hydra-logo-web.png"
 ];
