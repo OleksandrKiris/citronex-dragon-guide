@@ -25,15 +25,15 @@
   "ne": "अडियोको पाठ"
 };
       const SPOKEN_TRANSCRIPTS = {
-  "pl": "Witaj. To jest system Citronex. Jestem Twoim przewodnikiem. Wybierz język. Następnie wybierz miejsce pracy. Tutaj znajdziesz mapy, instrukcje, kontakty i ważne zasady. Zaczynamy.",
-  "en": "Welcome. This is the Citronex system. I am your guide. Choose a language. Then choose your workplace. Here you will find maps, instructions, contacts, and important rules. Let us begin.",
-  "ua": "Вітаю. Це система Citronex. Я ваш гід. Оберіть мову. Потім оберіть місце роботи. Тут ви знайдете карти, інструкції, контакти та важливі правила. Почнімо.",
-  "ru": "Здравствуйте. Это система Citronex. Я ваш помощник. Выберите язык. Затем выберите место работы. Здесь вы найдёте карты, инструкции, контакты и важные правила. Начнём.",
-  "az": "Salam. Bu, Citronex sistemidir. Mən sizin bələdçinizəm. Dil seçin. Sonra iş yerinizi seçin. Burada xəritələri, təlimatları, əlaqə nömrələrini və vacib qaydaları tapa bilərsiniz. Başlayaq.",
-  "es": "Bienvenido. Este es el sistema Citronex. Soy tu guía. Elige un idioma. Después, elige tu lugar de trabajo. Aquí encontrarás mapas, instrucciones, contactos y normas importantes. Empecemos.",
-  "fil": "Maligayang pagdating. Ito ang sistema ng Citronex. Ako ang iyong gabay. Piliin ang iyong wika. Pagkatapos, piliin ang lugar ng iyong trabaho. Dito makikita ang mga mapa, tagubilin, contact, at mahahalagang patakaran. Magsimula na tayo.",
-  "id": "Selamat datang. Ini adalah sistem Citronex. Saya pemandu Anda. Pilih bahasa. Lalu pilih tempat kerja Anda. Di sini ada peta, petunjuk, kontak, dan aturan penting. Mari kita mulai.",
-  "ne": "स्वागत छ। यो Citronex प्रणाली हो। म तपाईंको मार्गदर्शक हुँ\u0964 आफ्नो भाषा छान्नुहोस्। त्यसपछि काम गर्ने ठाउँ छान्नुहोस्। यहाँ नक्सा, निर्देशन, सम्पर्क र महत्वपूर्ण नियमहरू छन्। सुरु गरौँ।"
+  "pl": "Witaj. To system Citronex. Jestem Twoim przewodnikiem. Wybierz język. Potem wybierz miejsce pracy. Znajdziesz tu mapy, instrukcje, kontakty i zasady. Zaczynamy.",
+  "en": "Welcome. This is the Citronex system. I am your guide. Choose a language. Then choose your workplace. Here you can find maps, instructions, contacts, and rules. Let us begin.",
+  "ua": "Вітаю. Це система Citronex. Я ваш гід. Оберіть мову. Потім оберіть місце роботи. Тут є карти, інструкції, контакти та правила. Почнімо.",
+  "ru": "Здравствуйте. Это система Citronex. Я ваш помощник. Выберите язык. Затем выберите место работы. Здесь есть карты, инструкции, контакты и правила. Начнём.",
+  "az": "Salam. Bu, Citronex sistemidir. Mən sizin bələdçinizəm. Dil seçin. Sonra iş yerinizi seçin. Burada xəritələr, təlimatlar, əlaqə nömrələri və qaydalar var. Başlayaq.",
+  "es": "Bienvenido. Este es el sistema Citronex. Soy tu guía. Elige un idioma. Después, elige tu lugar de trabajo. Aquí encontrarás mapas, instrucciones, contactos y normas. Empecemos.",
+  "fil": "Maligayang pagdating. Ito ang sistema ng Citronex. Ako ang iyong gabay. Piliin ang iyong wika. Pagkatapos, piliin ang lugar ng iyong trabaho. Narito ang mga mapa, tagubilin, contact, at patakaran. Magsimula na tayo.",
+  "id": "Selamat datang. Ini sistem Citronex. Saya pemandu Anda. Pilih bahasa. Lalu pilih tempat kerja. Di sini ada peta, petunjuk, kontak, dan aturan. Mari kita mulai.",
+  "ne": "स्वागत छ। यो Citronex प्रणाली हो। म तपाईंको मार्गदर्शक हुँ\u0964 आफ्नो भाषा छान्नुहोस्। त्यसपछि काम गर्ने ठाउँ छान्नुहोस्। यहाँ नक्सा, निर्देशन, सम्पर्क र नियमहरू छन्। सुरु गरौँ।"
 };
   const TRANSLATION_REFINEMENTS = {
   "en": {
@@ -321,7 +321,7 @@
     ]
   }
 };
-  const BUILD = "20260717-voice3";
+  const BUILD = "20260717-voice4";
   const params = new URLSearchParams(window.location.search);
   const locationKey = params.get("location");
   const validLocation = Object.prototype.hasOwnProperty.call(TARGETS, locationKey);
