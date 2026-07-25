@@ -1,5 +1,5 @@
 const CACHE_PREFIX = "citronex-dragon-guide-";
-const CACHE_NAME = CACHE_PREFIX + "20260717-location-copy-dragon";
+const CACHE_NAME = CACHE_PREFIX + "20260725-location-icon-fix";
 const CORE_ASSETS = [
   "./",
   "./index.html",
