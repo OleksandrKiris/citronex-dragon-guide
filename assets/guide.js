@@ -706,7 +706,7 @@
     pauseButton.hidden = false;
     replayButton.hidden = false;
     const generation = playbackGeneration;
-    audio.play().then(() => { if (generation !== playbackGeneration || !playbackActive) return; setSpeaking(true); audioStatus.textContent = t().playing; }).catch(() => { if (generation === playbackGeneration && playbackActive) speakFallback(); });
+    audio.play().then(() => { if (generation !== playbackGeneration || !playbackActive) return; setSpeaking(true); pauseButton.textContent = t().pause; audioStatus.textContent = t().playing; }).catch(() => { if (generation === playbackGeneration && playbackActive) speakFallback(); });
   }
 
   function togglePause() {

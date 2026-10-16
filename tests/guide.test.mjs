@@ -260,6 +260,29 @@ test("changing language while paused restores start and selects the new recordin
   assert.equal(c.node("pauseButton").textContent, "Пауза");
 });
 
+for (const lang of locales) test(`${lang}: replaying a paused recording restores the pause action`, async () => {
+  const c = boot(`lang=${lang}&welcome=1`);
+  const pauseLabel = c.node("pauseButton").textContent;
+  c.node("startButton").emit("click");
+  await Promise.resolve();
+  const playingStatus = c.node("audioStatus").textContent;
+  c.node("guideAudio").currentTime = 12;
+  c.node("pauseButton").emit("click");
+  const resumeLabel = c.node("pauseButton").textContent;
+  assert.notEqual(resumeLabel, pauseLabel);
+  c.node("replayButton").emit("click");
+  await Promise.resolve();
+  assert.equal(c.node("guideAudio").currentTime, 0);
+  assert.equal(c.node("guideAudio").paused, false);
+  assert.equal(c.node("pauseButton").hidden, false);
+  assert.equal(c.node("pauseButton").textContent, pauseLabel, "Playing audio must offer Pause, not Resume");
+  assert.equal(c.node("audioStatus").textContent, playingStatus);
+  c.node("pauseButton").emit("click");
+  assert.equal(c.node("guideAudio").paused, true);
+  assert.equal(c.node("pauseButton").textContent, resumeLabel);
+  assert.equal(c.redirects.length, 0);
+});
+
 for (const speech of [false, true]) test(`${speech ? "speech" : "recording"}: current playback still completes and opens the correct destination`, async () => {
   const c = boot(`${speech ? "location=ryczywol&" : ""}lang=ua&welcome=1`, { speech });
   c.node("startButton").emit("click");
@@ -418,7 +441,7 @@ test("real HTML exposes the fallback note and all return links; changed CSS/JS h
   assert.ok(html.includes('id="languageFallback" class="language-fallback" role="status" hidden'));
   assert.equal((html.match(/data-hydra-link/g) || []).length, 3);
   for (const path of ["assets/guide.js", "assets/guide.css"]) {
-    const version = path.endsWith(".js") ? "20261016-primserv-guide4" : "20261016-primserv-guide1";
+    const version = path.endsWith(".js") ? "20261016-primserv-guide5" : "20261016-primserv-guide1";
     assert.ok(html.includes(`${path}?v=${version}`));
     assert.ok(sw.includes(`${path}?v=${version}`));
   }
