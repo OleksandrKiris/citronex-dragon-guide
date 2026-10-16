@@ -1,0 +1,22 @@
+name: Guide service worker checks
+
+on:
+  pull_request:
+    paths:
+      - sw.js
+      - tests/service-worker.test.mjs
+      - .github/workflows/check-cleanup.yml
+
+permissions:
+  contents: read
+
+jobs:
+  service-worker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: node --check sw.js
+      - run: node --test tests/service-worker.test.mjs

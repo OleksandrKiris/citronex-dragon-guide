@@ -35,11 +35,11 @@ async function cacheResponse(request, response) {
 self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET" || new URL(event.request.url).origin !== self.location.origin) return;
   event.respondWith((async () => {
-    const cached = await caches.match(event.request, { ignoreSearch: true });
     try {
       const response = await fetch(event.request);
       return await cacheResponse(event.request, response);
     } catch (error) {
+      const cached = await caches.match(event.request, { ignoreSearch: true });
       return cached || Response.error();
     }
   })());
