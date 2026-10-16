@@ -16,10 +16,10 @@ function boot(query = "location=siechnice&lang=pl&welcome=1", options = {}) {
       nodes.set(id, { id, hidden: ["guideApp", "invalidState", "languageGate", "openButton", "pauseButton", "replayButton"].includes(id), textContent: "", value: "", href: "", src: "", paused: true,
         classList: { add() {}, toggle() {}, remove() {} },
         addEventListener(key, fn) { if (!handlers.has(key)) handlers.set(key, []); handlers.get(key).push(fn); },
-        emit(key) { for (const fn of handlers.get(key) || []) fn({ target: this }); },
+        emit(key, event = {}) { for (const fn of handlers.get(key) || []) fn({ target: this, ...event }); },
         querySelector: () => ({ focus() {} }), querySelectorAll: () => [],
         setAttribute(key, value) { this[key] = value; },
-        focus() {}, load() { this.loads = (this.loads || 0) + 1; },
+        focus() { document.activeElement = this; }, load() { this.loads = (this.loads || 0) + 1; },
         pause() { this.paused = true; }, play() { if (options.rejectAudio) return Promise.reject(Error("Audio unavailable")); this.paused = false; return options.deferAudio ? new Promise((resolve, reject) => playRequests.push({ resolve, reject })) : Promise.resolve(); }
       });
     }
@@ -32,8 +32,14 @@ function boot(query = "location=siechnice&lang=pl&welcome=1", options = {}) {
     setItem(key, value) { if (options.blocked || options.blockedWrite) throw Error("Storage blocked"); storage.set(key, value); }
   };
   const links = ["brand", "returnLink", "invalidReturn"].map(node);
+  node("languageLabel").textContent = "Wybierz język";
+  const gateButtons = locales.map(lang => { const button = node("gate-" + lang); button.dataset = { gateLang: lang }; return button; });
+  node("languageGate").querySelectorAll = () => gateButtons;
+  node("languageGate").querySelector = selector => gateButtons.find(button => selector === `[data-gate-lang="${button.dataset.gateLang}"]`) || gateButtons[0];
+  const background = ["topbar", "serviceNav", "guideApp", "footer"].map(node);
+  background[3].inert = true; // Preserve a pre-existing inert section when the gate closes.
   const document = { getElementById: node, documentElement: { lang: "" }, body: { classList: { add() {} } },
-    querySelectorAll: selector => selector === "[data-hydra-link]" ? links : [] };
+    querySelectorAll: selector => selector === "[data-hydra-link]" ? links : selector === ".page-shell > :not(#languageGate)" ? background : [] };
   const window = { location, localStorage, setTimeout(fn, ms) { timers.push({ fn, ms }); return timers.length; }, addEventListener() {} };
   if (options.speech) window.speechSynthesis = {
     getVoices: () => options.deferVoice ? [] : ["pl-PL", "en-US", "uk-UA", "ru-RU", "az-AZ", "es-ES", "fil-PH", "id-ID", "ne-NP"].map(lang => ({ lang })),
@@ -42,12 +48,70 @@ function boot(query = "location=siechnice&lang=pl&welcome=1", options = {}) {
     pause() { this.paused = true; }, resume() { this.paused = false; }
   };
   const context = vm.createContext({ window, document, localStorage, URL, URLSearchParams, history: { state: null, replaceState(_a, _b, value) { if (options.blockedHistory) throw Error("History blocked"); location.href = String(value); location.search = new URL(value).search; } },
-    navigator: { language: "pl", languages: ["pl"] }, clearTimeout(id) { if (timers[id - 1]) timers[id - 1].cancelled = true; }, console,
+    navigator: { language: options.browserLanguage || "pl", languages: [options.browserLanguage || "pl"] }, clearTimeout(id) { if (timers[id - 1]) timers[id - 1].cancelled = true; }, console,
     SpeechSynthesisUtterance: function(text) { this.text = text; },
     fetch() { throw Error("Network and candidate operations forbidden"); } });
   vm.runInContext(source, context);
-  return { node, links, location, document, timers, redirects, storage, reads, utterances, playRequests, synth: window.speechSynthesis, choose(lang) { node("languageSelect").value = lang; node("languageSelect").emit("change"); } };
+  return { node, links, background, gateButtons, location, document, timers, redirects, storage, reads, utterances, playRequests, synth: window.speechSynthesis, choose(lang) { node("languageSelect").value = lang; node("languageSelect").emit("change"); } };
 }
+
+test("first-entry language gate contains keyboard focus and isolates the background", () => {
+  const c = boot("location=siechnice&welcome=1", { blocked: true });
+  const gate = c.node("languageGate");
+  assert.equal(gate.hidden, false);
+  assert.equal(c.document.activeElement, c.gateButtons[0]);
+  assert.ok(c.background.every(node => node.inert), "Background controls must be unavailable while a modal is open");
+  let prevented = 0;
+  const key = shiftKey => ({ key: "Tab", shiftKey, preventDefault() { prevented += 1; } });
+  gate.emit("keydown", key(true));
+  assert.equal(c.document.activeElement, c.gateButtons.at(-1));
+  gate.emit("keydown", key(false));
+  assert.equal(c.document.activeElement, c.gateButtons[0]);
+  assert.equal(prevented, 2);
+  c.gateButtons[2].focus();
+  gate.emit("keydown", key(false));
+  assert.equal(prevented, 2, "Interior Tab traversal remains native");
+});
+
+test("choosing a language returns focus to the start button without playing or navigating", () => {
+  const c = boot("location=ryczywol&welcome=1", { blocked: true, speech: true });
+  c.node("gate-ua").emit("click");
+  assert.equal(c.node("languageGate").hidden, true);
+  assert.equal(c.document.activeElement, c.node("startButton"));
+  assert.equal(c.node("startButton").hidden, false);
+  assert.equal(c.document.documentElement.lang, "uk");
+  assert.equal(c.node("languageLabel").textContent, "Оберіть мову");
+  assert.equal(c.background[0].inert, false);
+  assert.equal(c.background.at(-1).inert, true, "Existing inert state must survive closing the modal");
+  assert.equal(c.utterances.length, 0);
+  assert.equal(c.redirects.length, 0);
+  assert.equal(c.node("guideAudio").loads || 0, 0);
+});
+
+test("first-entry focus follows the detected language", () => {
+  const c = boot("location=ryczywol&welcome=1", { browserLanguage: "uk-UA" });
+  assert.equal(c.node("languageGate").hidden, false);
+  assert.equal(c.document.activeElement, c.node("gate-ua"));
+});
+
+test("Escape dismisses first-entry language choice using the detected language without autoplay", () => {
+  const c = boot("welcome=1", { blocked: true, speech: true });
+  let prevented = false;
+  c.node("languageGate").emit("keydown", { key: "Escape", preventDefault() { prevented = true; } });
+  assert.equal(prevented, true);
+  assert.equal(c.node("languageGate").hidden, true);
+  assert.equal(c.document.activeElement, c.node("startButton"));
+  assert.equal(c.node("languageSelect").value, "pl");
+  assert.equal(c.utterances.length, 0);
+  assert.equal(c.node("guideAudio").loads || 0, 0);
+  assert.equal(c.redirects.length, 0);
+});
+
+for (const lang of locales) test(`${lang}: the language select has a localized accessible label`, () => {
+  const c = boot(`lang=${lang}&welcome=1`);
+  assert.equal(c.node("languageLabel").textContent, c.node("gateTitle").textContent);
+  assert.ok(c.node("languageLabel").textContent);
+});
 
 for (const lang of locales) test(`${lang}: changing language cancels speech and ignores its late events`, () => {
   const c = boot(`location=siechnice&lang=${lang}&welcome=1`, { speech: true });
@@ -354,7 +418,7 @@ test("real HTML exposes the fallback note and all return links; changed CSS/JS h
   assert.ok(html.includes('id="languageFallback" class="language-fallback" role="status" hidden'));
   assert.equal((html.match(/data-hydra-link/g) || []).length, 3);
   for (const path of ["assets/guide.js", "assets/guide.css"]) {
-    const version = path.endsWith(".js") ? "20261016-primserv-guide3" : "20261016-primserv-guide1";
+    const version = path.endsWith(".js") ? "20261016-primserv-guide4" : "20261016-primserv-guide1";
     assert.ok(html.includes(`${path}?v=${version}`));
     assert.ok(sw.includes(`${path}?v=${version}`));
   }
