@@ -447,6 +447,8 @@
   const app = $("guideApp");
   const invalidState = $("invalidState");
   const languageGate = $("languageGate");
+  const gateBackground = document.querySelectorAll(".page-shell > :not(#languageGate)");
+  const gateInertState = new Map();
   const languageSelect = $("languageSelect");
   const audio = $("guideAudio");
   const dragonWrap = $("dragonWrap");
@@ -516,10 +518,40 @@
     skipButton.textContent = copy.skip;
     audioStatus.textContent = copy.reading;
     setText("gateTitle", copy.gateTitle);
+    setText("languageLabel", copy.gateTitle);
     setText("gateText", locationCopy.gate);
   }
 
-  function setGateVisible(visible) { languageGate.hidden = !visible; if (visible) languageGate.querySelector("button")?.focus(); }
+  function setGateVisible(visible) {
+    languageGate.hidden = !visible;
+    gateBackground.forEach(node => {
+      if (visible) {
+        if (!gateInertState.has(node)) gateInertState.set(node, Boolean(node.inert));
+        node.inert = true;
+      } else if (gateInertState.has(node)) {
+        node.inert = gateInertState.get(node);
+        gateInertState.delete(node);
+      }
+    });
+    if (visible) languageGate.querySelector(`[data-gate-lang="${lang}"]`)?.focus();
+    else startButton.focus();
+  }
+
+  languageGate.addEventListener("keydown", event => {
+    if (languageGate.hidden) return;
+    if (event.key === "Escape") {
+      event.preventDefault();
+      setGateVisible(false);
+      return;
+    }
+    if (event.key !== "Tab") return;
+    const buttons = Array.from(languageGate.querySelectorAll("[data-gate-lang]"));
+    const first = buttons[0], last = buttons[buttons.length - 1];
+    if ((event.shiftKey && document.activeElement === first) || (!event.shiftKey && document.activeElement === last)) {
+      event.preventDefault();
+      (event.shiftKey ? last : first).focus();
+    }
+  });
 
   function targetUrl() {
     if (genericGuide) {
