@@ -7,6 +7,8 @@ on:
       - index.html
       - assets/guide.js
       - assets/guide.css
+      - assets/brand/**
+      - manifest.webmanifest
       - tests/guide.test.mjs
       - tests/service-worker.test.mjs
       - .github/workflows/check-cleanup.yml

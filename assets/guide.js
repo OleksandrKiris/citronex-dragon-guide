@@ -397,6 +397,18 @@
   }
 };
   const BUILD = "20260717-location-copy";
+  // Reuse the service labels already published in the PrimServ arrival guide.
+  const SERVICE_LABELS = {
+    pl: ["Firma PrimServ", "Oferty pracy", "Bot Telegram", "Wróć do Hydry"],
+    ru: ["Компания PrimServ", "Вакансии", "Telegram-бот", "Вернуться в Hydra"],
+    ua: ["Компанія PrimServ", "Вакансії", "Telegram-бот", "Повернутися до Hydra"],
+    en: ["Company PrimServ", "Vacancies", "Telegram bot", "Back to Hydra"],
+    az: ["PrimServ şirkəti", "Vakansiyalar", "Telegram botu", "Hydra-ya qayıt"],
+    es: ["Empresa PrimServ", "Vacantes", "Bot de Telegram", "Volver a Hydra"],
+    fil: ["Kumpanya PrimServ", "Mga bakanteng trabaho", "Telegram bot", "Bumalik sa Hydra"],
+    id: ["Perusahaan PrimServ", "Lowongan kerja", "Bot Telegram", "Kembali ke Hydra"],
+    ne: ["PrimServ कम्पनी", "रिक्त पदहरू", "Telegram बोट", "Hydra मा फर्कनुहोस्"]
+  };
   function readSaved(key) {
     try { return localStorage.getItem(key) || ""; } catch { return ""; }
   }
@@ -470,6 +482,12 @@
     const portal = new URL("https://oleksandrkiris.github.io/citronex-hydra-project/");
     portal.searchParams.set("lang", lang);
     document.querySelectorAll("[data-hydra-link]").forEach(link => { link.href = portal.toString(); });
+    const services = SERVICE_LABELS[lang] || SERVICE_LABELS.en;
+    ["companyLink", "jobsLink", "botLink", "hydraLink"].forEach((id, index) => setText(id, services[index]));
+    const jobs = new URL("https://oleksandrkiris.github.io/kiris-jobs/");
+    jobs.searchParams.set("lang", lang === "ua" ? "uk" : lang);
+    const jobsLink = $("jobsLink");
+    if (jobsLink) jobsLink.href = jobs.toString();
     const fallbackNote = $("languageFallback");
     if (fallbackNote) {
       fallbackNote.hidden = !(fallbackLanguage && lang === "en");
@@ -636,6 +654,7 @@
 
   if (!validLocation) {
     invalidState.hidden = false;
+    applyLanguage(lang);
   } else if (hasLocation && wasSeen() && !forceGuide) {
     document.body.classList.add("is-redirecting");
     window.setTimeout(finishAndOpen, 80);
