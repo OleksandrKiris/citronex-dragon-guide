@@ -553,6 +553,16 @@
 
   function stopSpeechFallback() { if (window.speechSynthesis) window.speechSynthesis.cancel(); speechFallbackActive = false; }
 
+  function showSpeechState(paused) {
+    setSpeaking(!paused);
+    startButton.hidden = true;
+    openButton.hidden = true;
+    pauseButton.hidden = false;
+    replayButton.hidden = false;
+    pauseButton.textContent = paused ? t().resume : t().pause;
+    audioStatus.textContent = paused ? t().paused : t().playing;
+  }
+
   function speakFallback() {
     if (speechFallbackActive) return;
     if (!window.speechSynthesis) { playbackActive = false; audioStatus.textContent = t().fallback; openButton.hidden = false; pauseButton.hidden = true; return; }
@@ -570,9 +580,14 @@
       utterance.rate = profile.rate;
       utterance.pitch = profile.pitch;
       if (voice) utterance.voice = voice;
-      utterance.onstart = () => { if (!isCurrent()) return; setSpeaking(true); audioStatus.textContent = t().playing; };
+      utterance.onstart = () => { if (isCurrent()) showSpeechState(false); };
+      utterance.onpause = () => { if (isCurrent()) showSpeechState(true); };
+      utterance.onresume = () => { if (isCurrent()) showSpeechState(false); };
       utterance.onend = () => { if (!isCurrent()) return; speechFallbackActive = false; completeGuide(); };
       utterance.onerror = () => { if (!isCurrent()) return; playbackActive = false; speechFallbackActive = false; setSpeaking(false); audioStatus.textContent = t().fallback; openButton.hidden = false; pauseButton.hidden = true; };
+      // cancel() clears the queue but retains its paused state. A user-requested
+      // replay or new-language start must release that state before speaking.
+      if (window.speechSynthesis.paused) window.speechSynthesis.resume();
       window.speechSynthesis.speak(utterance);
     });
   }
@@ -663,7 +678,13 @@
   }
 
   function togglePause() {
-    if (speechFallbackActive) { if (window.speechSynthesis.paused) { window.speechSynthesis.resume(); pauseButton.textContent = t().pause; } else { window.speechSynthesis.pause(); pauseButton.textContent = t().resume; } return; }
+    if (speechFallbackActive) {
+      const resume = window.speechSynthesis.paused;
+      if (resume) window.speechSynthesis.resume();
+      else window.speechSynthesis.pause();
+      showSpeechState(!resume);
+      return;
+    }
     if (audio.paused) {
       const generation = playbackGeneration;
       audio.play().then(() => { if (generation !== playbackGeneration || !playbackActive) return; setSpeaking(true); pauseButton.textContent = t().pause; audioStatus.textContent = t().playing; }).catch(() => { if (generation === playbackGeneration && playbackActive) speakFallback(); });

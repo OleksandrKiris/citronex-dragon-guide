@@ -1,10 +1,10 @@
 const CACHE_PREFIX = "citronex-dragon-guide-";
-const CACHE_NAME = CACHE_PREFIX + "20261016-primserv-guide2";
+const CACHE_NAME = CACHE_PREFIX + "20261016-primserv-guide3";
 const CORE_ASSETS = [
   "./",
   "./index.html",
   "./assets/guide.css?v=20261016-primserv-guide1",
-  "./assets/guide.js?v=20261016-primserv-guide2",
+  "./assets/guide.js?v=20261016-primserv-guide3",
   "./manifest.webmanifest?v=20261016-primserv-guide1",
   "./assets/brand/primserv-logo.svg",
   "./assets/brand/primserv-icon-192.png"

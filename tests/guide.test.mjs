@@ -59,12 +59,88 @@ for (const lang of locales) test(`${lang}: changing language cancels speech and 
   c.choose(lang === "en" ? "ua" : "en");
   assert.ok(c.synth.cancelCount > cancellations);
   const status = c.node("audioStatus").textContent;
-  previous.onstart(); previous.onend(); previous.onerror();
+  previous.onstart(); previous.onpause(); previous.onresume(); previous.onend(); previous.onerror();
   assert.equal(c.node("audioStatus").textContent, status);
   assert.equal(c.node("startButton").hidden, false);
   assert.equal(c.node("pauseButton").hidden, true);
   assert.equal(c.timers.filter(timer => !timer.cancelled).length, 0);
   assert.equal(c.redirects.length, 0);
+});
+
+for (const lang of locales) test(`${lang}: location speech exposes pause/resume and replay controls`, () => {
+  const c = boot(`location=siechnice&lang=${lang}&welcome=1`, { speech: true });
+  const pauseLabel = c.node("pauseButton").textContent;
+  c.node("startButton").emit("click");
+  const speech = c.utterances[0];
+  speech.onstart();
+  const playingStatus = c.node("audioStatus").textContent;
+  assert.equal(c.node("pauseButton").hidden, false, "Pause must be reachable during location speech");
+  assert.equal(c.node("replayButton").hidden, false);
+  assert.equal(c.node("startButton").hidden, true);
+  c.node("pauseButton").emit("click");
+  assert.equal(c.synth.paused, true);
+  assert.notEqual(c.node("pauseButton").textContent, pauseLabel);
+  assert.notEqual(c.node("audioStatus").textContent, playingStatus);
+  c.node("pauseButton").emit("click");
+  assert.equal(c.synth.paused, false);
+  assert.equal(c.node("pauseButton").textContent, pauseLabel);
+  assert.equal(c.node("audioStatus").textContent, playingStatus);
+  assert.equal(c.redirects.length, 0, "Pause/resume must not complete or leave the guide");
+  assert.equal(c.utterances.length, 1, "Resume continues the same instructions");
+});
+
+test("recording failure exposes the same controls when browser speech starts", async () => {
+  const c = boot("lang=en&welcome=1", { speech: true, rejectAudio: true });
+  c.node("startButton").emit("click");
+  await Promise.resolve(); await Promise.resolve();
+  c.utterances[0].onstart();
+  assert.equal(c.node("pauseButton").hidden, false);
+  assert.equal(c.node("replayButton").hidden, false);
+  assert.equal(c.node("startButton").hidden, true);
+  c.node("pauseButton").emit("click");
+  assert.equal(c.node("audioStatus").textContent, "Audio paused.");
+});
+
+test("replaying paused speech releases the paused engine before starting the new instructions", () => {
+  const c = boot("location=ryczywol&lang=en&welcome=1", { speech: true });
+  c.node("startButton").emit("click");
+  c.utterances[0].onstart();
+  c.node("pauseButton").emit("click");
+  assert.equal(c.synth.paused, true);
+  c.node("replayButton").emit("click");
+  assert.equal(c.synth.paused, false, "cancel() alone does not reset the speech engine's paused state");
+  assert.equal(c.utterances.length, 2);
+});
+
+test("native speech pause and resume events keep the visible status in sync", () => {
+  const c = boot("location=ryczywol&lang=en&welcome=1", { speech: true });
+  c.node("startButton").emit("click");
+  const speech = c.utterances[0];
+  speech.onstart();
+  speech.onpause();
+  assert.equal(c.node("audioStatus").textContent, "Audio paused.");
+  assert.equal(c.node("pauseButton").textContent, "Resume");
+  speech.onresume();
+  assert.equal(c.node("pauseButton").textContent, "Pause");
+  assert.match(c.node("audioStatus").textContent, /speaking/);
+  speech.onend();
+  assert.equal(c.node("pauseButton").hidden, true);
+  assert.equal(c.node("openButton").hidden, false);
+});
+
+test("changing language while speech is paused permits a new explicit start", () => {
+  const c = boot("location=siechnice&lang=en&welcome=1", { speech: true });
+  c.node("startButton").emit("click");
+  c.utterances[0].onstart();
+  c.node("pauseButton").emit("click");
+  c.choose("ua");
+  assert.equal(c.utterances.length, 1, "Changing language must not automatically speak");
+  c.node("startButton").emit("click");
+  assert.equal(c.synth.paused, false);
+  assert.equal(c.utterances.length, 2);
+  assert.equal(c.utterances[1].lang, "uk-UA");
+  c.utterances[1].onstart();
+  assert.equal(c.node("pauseButton").hidden, false);
 });
 
 test("a voice discovered after a language change cannot start the old speech", () => {
@@ -278,7 +354,7 @@ test("real HTML exposes the fallback note and all return links; changed CSS/JS h
   assert.ok(html.includes('id="languageFallback" class="language-fallback" role="status" hidden'));
   assert.equal((html.match(/data-hydra-link/g) || []).length, 3);
   for (const path of ["assets/guide.js", "assets/guide.css"]) {
-    const version = path.endsWith(".js") ? "20261016-primserv-guide2" : "20261016-primserv-guide1";
+    const version = path.endsWith(".js") ? "20261016-primserv-guide3" : "20261016-primserv-guide1";
     assert.ok(html.includes(`${path}?v=${version}`));
     assert.ok(sw.includes(`${path}?v=${version}`));
   }
