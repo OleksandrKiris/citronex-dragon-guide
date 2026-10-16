@@ -4,6 +4,10 @@ on:
   pull_request:
     paths:
       - sw.js
+      - index.html
+      - assets/guide.js
+      - assets/guide.css
+      - tests/guide.test.mjs
       - tests/service-worker.test.mjs
       - .github/workflows/check-cleanup.yml
 
@@ -19,4 +23,5 @@ jobs:
         with:
           node-version: 24
       - run: node --check sw.js
-      - run: node --test tests/service-worker.test.mjs
+      - run: node --check assets/guide.js
+      - run: node --test tests/*.test.mjs
