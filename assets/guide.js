@@ -626,7 +626,9 @@
 
   function prepareAudio() {
     const nextSource = AUDIO[lang];
-    if (audio.src.endsWith(nextSource)) return;
+    // A failed media resource needs a new load cycle on explicit start/replay.
+    // Keep the healthy recording buffered; never retry from an error event.
+    if (audio.src.endsWith(nextSource) && !audio.error) return;
     stopSpeechFallback();
     audio.src = nextSource;
     audio.load();

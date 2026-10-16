@@ -19,8 +19,8 @@ function boot(query = "location=siechnice&lang=pl&welcome=1", options = {}) {
         emit(key, event = {}) { for (const fn of handlers.get(key) || []) fn({ target: this, ...event }); },
         querySelector: () => ({ focus() {} }), querySelectorAll: () => [],
         setAttribute(key, value) { this[key] = value; },
-        focus() { document.activeElement = this; }, load() { this.loads = (this.loads || 0) + 1; },
-        pause() { this.paused = true; }, play() { if (options.rejectAudio) return Promise.reject(Error("Audio unavailable")); this.paused = false; return options.deferAudio ? new Promise((resolve, reject) => playRequests.push({ resolve, reject })) : Promise.resolve(); }
+        focus() { document.activeElement = this; }, load() { this.loads = (this.loads || 0) + 1; this.error = null; },
+        pause() { this.paused = true; }, play() { if (options.rejectAudio || this.error) return Promise.reject(Error("Audio unavailable")); this.paused = false; return options.deferAudio ? new Promise((resolve, reject) => playRequests.push({ resolve, reject })) : Promise.resolve(); }
       });
     }
     return nodes.get(id);
@@ -321,6 +321,103 @@ test("a failed resume exposes the text fallback and direct continue action", asy
   assert.equal(c.node("pauseButton").hidden, true);
 });
 
+for (const lang of locales) test(`${lang}: explicit replay reloads a failed MP3 without changing its source`, async () => {
+  const c = boot(`lang=${lang}&welcome=1`, { blocked: true });
+  c.node("startButton").emit("click");
+  await Promise.resolve();
+  const audio = c.node("guideAudio");
+  const originalSource = audio.src;
+  const playingStatus = c.node("audioStatus").textContent;
+  audio.error = { code: 2 }; // MediaError persists until a new load cycle.
+  audio.paused = true;
+  audio.emit("error");
+  assert.equal(c.node("openButton").hidden, false);
+  assert.equal(c.node("replayButton").hidden, false);
+  assert.equal(audio.loads, 1, "Failure must not cause a background retry");
+  assert.equal(c.timers.length, 0);
+  c.node("replayButton").focus();
+  c.node("replayButton").emit("click");
+  await Promise.resolve(); await Promise.resolve();
+  assert.equal(audio.loads, 2, "Retry must reset the failed media resource");
+  assert.equal(audio.src, originalSource);
+  assert.equal(audio.currentTime, 0);
+  assert.equal(audio.paused, false);
+  assert.equal(c.node("audioStatus").textContent, playingStatus);
+  assert.equal(c.node("pauseButton").hidden, false);
+  assert.equal(c.document.activeElement, c.node("replayButton"));
+  assert.equal(c.redirects.length, 0);
+});
+
+test("healthy replay keeps the buffered recording without another load", async () => {
+  const c = boot("lang=en&welcome=1");
+  c.node("startButton").emit("click");
+  await Promise.resolve();
+  c.node("pauseButton").emit("click");
+  c.node("replayButton").emit("click");
+  await Promise.resolve();
+  assert.equal(c.node("guideAudio").loads, 1);
+  assert.equal(c.node("guideAudio").paused, false);
+});
+
+test("failed retry leaves text and continue available without repeated downloads", async () => {
+  const options = {};
+  const c = boot("lang=en&welcome=1", options);
+  c.node("startButton").emit("click");
+  await Promise.resolve();
+  const audio = c.node("guideAudio");
+  audio.error = { code: 2 };
+  audio.emit("error");
+  options.rejectAudio = true;
+  c.node("replayButton").emit("click");
+  await Promise.resolve(); await Promise.resolve();
+  assert.equal(audio.loads, 2);
+  assert.equal(c.node("openButton").hidden, false);
+  assert.equal(c.node("pauseButton").hidden, true);
+  assert.equal(c.node("replayButton").hidden, false);
+  assert.match(c.node("audioStatus").textContent, /unavailable/);
+  assert.ok(c.node("speechText").textContent.length > 20);
+  assert.equal(c.timers.length, 0);
+  assert.equal(c.redirects.length, 0);
+});
+
+test("an initial media failure can be retried with the still-visible start button", async () => {
+  const options = { deferAudio: true };
+  const c = boot("lang=ka&welcome=1", options);
+  c.node("startButton").emit("click");
+  const audio = c.node("guideAudio");
+  audio.error = { code: 4 };
+  audio.emit("error");
+  c.playRequests[0].reject(Error("unsupported until load"));
+  await Promise.resolve(); await Promise.resolve();
+  assert.equal(c.node("startButton").hidden, false);
+  assert.equal(c.node("languageFallback").hidden, false);
+  options.deferAudio = false;
+  c.node("startButton").emit("click");
+  await Promise.resolve();
+  assert.equal(audio.loads, 2);
+  assert.match(audio.src, /intro-en\.mp3/);
+  assert.equal(c.node("pauseButton").hidden, false);
+});
+
+test("changing language after a failed source starts only the new language on request", async () => {
+  const c = boot("lang=en&welcome=1", { storage: { "unrelated": "keep" } });
+  c.node("startButton").emit("click");
+  await Promise.resolve();
+  const audio = c.node("guideAudio");
+  audio.error = { code: 2 };
+  audio.emit("error");
+  c.choose("ua");
+  assert.equal(audio.loads, 1);
+  c.node("startButton").emit("click");
+  await Promise.resolve();
+  assert.match(audio.src, /intro-ua\.mp3/);
+  assert.equal(audio.loads, 2);
+  assert.equal(c.storage.get("unrelated"), "keep");
+  const reloaded = boot("welcome=1", { storage: Object.fromEntries(c.storage) });
+  assert.equal(reloaded.document.documentElement.lang, "uk");
+  assert.equal(reloaded.node("guideAudio").loads, undefined);
+});
+
 test("saved language is read once instead of repeating a synchronous storage lookup", () => {
   const c = boot("location=ryczywol&welcome=1", { storage: { "cxDragonGuide:lang": "en" } });
   assert.equal(c.document.documentElement.lang, "en");
@@ -441,7 +538,7 @@ test("real HTML exposes the fallback note and all return links; changed CSS/JS h
   assert.ok(html.includes('id="languageFallback" class="language-fallback" role="status" hidden'));
   assert.equal((html.match(/data-hydra-link/g) || []).length, 3);
   for (const path of ["assets/guide.js", "assets/guide.css"]) {
-    const version = path.endsWith(".js") ? "20261016-primserv-guide5" : "20261016-primserv-guide1";
+    const version = path.endsWith(".js") ? "20261017-media-retry1" : "20261016-primserv-guide1";
     assert.ok(html.includes(`${path}?v=${version}`));
     assert.ok(sw.includes(`${path}?v=${version}`));
   }
