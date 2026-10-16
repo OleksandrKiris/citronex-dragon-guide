@@ -9,7 +9,7 @@ const locales = ["pl", "en", "ua", "ru", "az", "es", "fil", "id", "ne"];
 const targets = { siechnice: "citronex-siechnice-szkolenie", ryczywol: "citronex-ryczywol-szkolenie", zgorzelec_bogatynia: "citronex-zgorzelec-bogatynia-szkolenie" };
 
 function boot(query = "location=siechnice&lang=pl&welcome=1", options = {}) {
-  const nodes = new Map(), timers = [], redirects = [], reads = [], storage = new Map(Object.entries(options.storage || {}));
+  const nodes = new Map(), timers = [], redirects = [], reads = [], utterances = [], playRequests = [], storage = new Map(Object.entries(options.storage || {}));
   function node(id) {
     if (!nodes.has(id)) {
       const handlers = new Map();
@@ -20,7 +20,7 @@ function boot(query = "location=siechnice&lang=pl&welcome=1", options = {}) {
         querySelector: () => ({ focus() {} }), querySelectorAll: () => [],
         setAttribute(key, value) { this[key] = value; },
         focus() {}, load() { this.loads = (this.loads || 0) + 1; },
-        pause() { this.paused = true; }, play() { if (options.rejectAudio) return Promise.reject(Error("Audio unavailable")); this.paused = false; return Promise.resolve(); }
+        pause() { this.paused = true; }, play() { if (options.rejectAudio) return Promise.reject(Error("Audio unavailable")); this.paused = false; return options.deferAudio ? new Promise((resolve, reject) => playRequests.push({ resolve, reject })) : Promise.resolve(); }
       });
     }
     return nodes.get(id);
@@ -35,12 +35,128 @@ function boot(query = "location=siechnice&lang=pl&welcome=1", options = {}) {
   const document = { getElementById: node, documentElement: { lang: "" }, body: { classList: { add() {} } },
     querySelectorAll: selector => selector === "[data-hydra-link]" ? links : [] };
   const window = { location, localStorage, setTimeout(fn, ms) { timers.push({ fn, ms }); return timers.length; }, addEventListener() {} };
+  if (options.speech) window.speechSynthesis = {
+    getVoices: () => options.deferVoice ? [] : ["pl-PL", "en-US", "uk-UA", "ru-RU", "az-AZ", "es-ES", "fil-PH", "id-ID", "ne-NP"].map(lang => ({ lang })),
+    cancel() { this.cancelCount = (this.cancelCount || 0) + 1; },
+    speak(utterance) { utterances.push(utterance); },
+    pause() { this.paused = true; }, resume() { this.paused = false; }
+  };
   const context = vm.createContext({ window, document, localStorage, URL, URLSearchParams, history: { state: null, replaceState(_a, _b, value) { if (options.blockedHistory) throw Error("History blocked"); location.href = String(value); location.search = new URL(value).search; } },
-    navigator: { language: "pl", languages: ["pl"] }, clearTimeout() {}, console,
+    navigator: { language: "pl", languages: ["pl"] }, clearTimeout(id) { if (timers[id - 1]) timers[id - 1].cancelled = true; }, console,
+    SpeechSynthesisUtterance: function(text) { this.text = text; },
     fetch() { throw Error("Network and candidate operations forbidden"); } });
   vm.runInContext(source, context);
-  return { node, links, location, document, timers, redirects, storage, reads, choose(lang) { node("languageSelect").value = lang; node("languageSelect").emit("change"); } };
+  return { node, links, location, document, timers, redirects, storage, reads, utterances, playRequests, synth: window.speechSynthesis, choose(lang) { node("languageSelect").value = lang; node("languageSelect").emit("change"); } };
 }
+
+for (const lang of locales) test(`${lang}: changing language cancels speech and ignores its late events`, () => {
+  const c = boot(`location=siechnice&lang=${lang}&welcome=1`, { speech: true });
+  c.node("startButton").emit("click");
+  const previous = c.utterances[0];
+  assert.ok(previous);
+  previous.onstart();
+  const cancellations = c.synth.cancelCount;
+  c.choose(lang === "en" ? "ua" : "en");
+  assert.ok(c.synth.cancelCount > cancellations);
+  const status = c.node("audioStatus").textContent;
+  previous.onstart(); previous.onend(); previous.onerror();
+  assert.equal(c.node("audioStatus").textContent, status);
+  assert.equal(c.node("startButton").hidden, false);
+  assert.equal(c.node("pauseButton").hidden, true);
+  assert.equal(c.timers.filter(timer => !timer.cancelled).length, 0);
+  assert.equal(c.redirects.length, 0);
+});
+
+test("a voice discovered after a language change cannot start the old speech", () => {
+  const c = boot("location=ryczywol&lang=en&welcome=1", { speech: true, deferVoice: true });
+  c.node("startButton").emit("click");
+  c.choose("ua");
+  c.timers.find(timer => timer.ms === 450).fn();
+  assert.equal(c.utterances.length, 0);
+});
+
+for (const outcome of ["resolve", "reject"]) test(`late audio ${outcome} cannot change the new language screen`, async () => {
+  const c = boot("lang=en&welcome=1", { deferAudio: true, speech: true });
+  c.node("startButton").emit("click");
+  c.choose("ua");
+  const status = c.node("audioStatus").textContent;
+  c.playRequests[0][outcome](outcome === "reject" ? Error("aborted old source") : undefined);
+  await Promise.resolve(); await Promise.resolve();
+  assert.equal(c.node("audioStatus").textContent, status);
+  assert.equal(c.node("startButton").hidden, false);
+  assert.equal(c.node("pauseButton").hidden, true);
+  assert.equal(c.utterances.length, 0);
+  c.node("guideAudio").emit("error");
+  c.node("guideAudio").emit("ended");
+  assert.equal(c.utterances.length, 0);
+  assert.equal(c.timers.filter(timer => !timer.cancelled).length, 0);
+});
+
+test("switching language after completion cancels the pending automatic redirect", () => {
+  const c = boot("location=ryczywol&lang=en&welcome=1", { speech: true });
+  c.node("startButton").emit("click");
+  c.utterances[0].onend();
+  const redirect = c.timers.find(timer => timer.ms === 1100);
+  assert.ok(redirect);
+  c.choose("ua");
+  assert.equal(redirect.cancelled, true);
+  redirect.fn(); // Also protect a callback already queued by the browser.
+  assert.equal(c.redirects.length, 0);
+  c.node("skipButton").emit("click");
+  assert.equal(new URL(c.redirects[0]).searchParams.get("lang"), "ua");
+});
+
+test("changing language while paused restores start and selects the new recording", async () => {
+  const c = boot("lang=en&welcome=1");
+  c.node("startButton").emit("click");
+  await Promise.resolve();
+  c.node("pauseButton").emit("click");
+  c.choose("ua");
+  assert.equal(c.node("startButton").hidden, false);
+  assert.equal(c.node("pauseButton").hidden, true);
+  c.node("startButton").emit("click");
+  await Promise.resolve();
+  assert.match(c.node("guideAudio").src, /intro-ua\.mp3/);
+  assert.equal(c.node("pauseButton").textContent, "Пауза");
+});
+
+for (const speech of [false, true]) test(`${speech ? "speech" : "recording"}: current playback still completes and opens the correct destination`, async () => {
+  const c = boot(`${speech ? "location=ryczywol&" : ""}lang=ua&welcome=1`, { speech });
+  c.node("startButton").emit("click");
+  await Promise.resolve();
+  if (speech) c.utterances[0].onend(); else c.node("guideAudio").emit("ended");
+  assert.equal(c.node("openButton").hidden, false);
+  const redirects = c.timers.filter(timer => timer.ms === 1100 && !timer.cancelled);
+  assert.equal(redirects.length, 1);
+  redirects[0].fn();
+  assert.equal(new URL(c.redirects[0]).searchParams.get("lang"), "ua");
+  assert.equal(new URL(c.redirects[0]).pathname, speech ? "/citronex-ryczywol-szkolenie/" : "/citronex-hydra-project/");
+});
+
+test("replay invalidates the old speech and only the new one can complete", () => {
+  const c = boot("location=siechnice&lang=en&welcome=1", { speech: true });
+  c.node("startButton").emit("click");
+  c.node("replayButton").emit("click");
+  assert.equal(c.utterances.length, 2);
+  c.utterances[0].onend();
+  assert.equal(c.timers.length, 0);
+  c.utterances[1].onend();
+  assert.equal(c.timers.length, 1);
+});
+
+test("a failed resume exposes the text fallback and direct continue action", async () => {
+  const options = {};
+  const c = boot("lang=en&welcome=1", options);
+  c.node("startButton").emit("click");
+  await Promise.resolve();
+  c.node("pauseButton").emit("click");
+  options.rejectAudio = true;
+  c.node("pauseButton").emit("click");
+  await Promise.resolve(); await Promise.resolve();
+  assert.match(c.node("audioStatus").textContent, /unavailable/);
+  assert.equal(c.node("openButton").hidden, false);
+  assert.equal(c.node("pauseButton").hidden, true);
+});
 
 test("saved language is read once instead of repeating a synchronous storage lookup", () => {
   const c = boot("location=ryczywol&welcome=1", { storage: { "cxDragonGuide:lang": "en" } });
@@ -162,8 +278,9 @@ test("real HTML exposes the fallback note and all return links; changed CSS/JS h
   assert.ok(html.includes('id="languageFallback" class="language-fallback" role="status" hidden'));
   assert.equal((html.match(/data-hydra-link/g) || []).length, 3);
   for (const path of ["assets/guide.js", "assets/guide.css"]) {
-    assert.ok(html.includes(`${path}?v=20261016-primserv-guide1`));
-    assert.ok(sw.includes(`${path}?v=20261016-primserv-guide1`));
+    const version = path.endsWith(".js") ? "20261016-primserv-guide2" : "20261016-primserv-guide1";
+    assert.ok(html.includes(`${path}?v=${version}`));
+    assert.ok(sw.includes(`${path}?v=${version}`));
   }
 });
 

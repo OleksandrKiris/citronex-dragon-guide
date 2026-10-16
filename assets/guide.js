@@ -438,9 +438,10 @@
   }
   const browserLang = detectBrowserLanguage();
   let lang = queryLang || storedLang || browserLang;
-  let audioSourceReady = false;
   let speechFallbackActive = false;
   let redirectTimer = null;
+  let playbackGeneration = 0;
+  let playbackActive = false;
 
   const $ = (id) => document.getElementById(id);
   const app = $("guideApp");
@@ -472,6 +473,7 @@
   function setText(id, value) { const node = $(id); if (node) node.textContent = value; }
 
   function applyLanguage(nextLang) {
+    stopPlayback();
     lang = LANGS.includes(nextLang) ? nextLang : "en";
     savePreference("cxDragonGuide:lang", lang);
     try {
@@ -505,13 +507,16 @@
     setText("speechText", locationCopy.spoken);
     startButton.textContent = copy.start;
     openButton.textContent = copy.open;
-    pauseButton.textContent = audio.paused ? copy.pause : copy.resume;
+    pauseButton.textContent = copy.pause;
+    startButton.hidden = false;
+    openButton.hidden = true;
+    pauseButton.hidden = true;
+    replayButton.hidden = true;
     replayButton.textContent = copy.replay;
     skipButton.textContent = copy.skip;
     audioStatus.textContent = copy.reading;
     setText("gateTitle", copy.gateTitle);
     setText("gateText", locationCopy.gate);
-    if (audioSourceReady && !audio.paused) stopPlayback();
   }
 
   function setGateVisible(visible) { languageGate.hidden = !visible; if (visible) languageGate.querySelector("button")?.focus(); }
@@ -531,6 +536,7 @@
 
   function finishAndOpen() {
     if (!validLocation) return;
+    stopPlayback();
     if (hasLocation) savePreference(`cxDragonGuide:${locationKey}:seen:${BUILD}`, "1");
     window.location.assign(targetUrl());
   }
@@ -548,21 +554,25 @@
   function stopSpeechFallback() { if (window.speechSynthesis) window.speechSynthesis.cancel(); speechFallbackActive = false; }
 
   function speakFallback() {
-    if (!window.speechSynthesis) { audioStatus.textContent = t().fallback; openButton.hidden = false; return; }
+    if (speechFallbackActive) return;
+    if (!window.speechSynthesis) { playbackActive = false; audioStatus.textContent = t().fallback; openButton.hidden = false; pauseButton.hidden = true; return; }
     stopSpeechFallback();
     speechFallbackActive = true;
+    const generation = playbackGeneration;
+    const isCurrent = () => generation === playbackGeneration && playbackActive;
     const phrases = [getLocationGuideCopy(lang).spoken];
     const locale = SPEECH_LOCALES[lang] || "en-US";
     const profile = VOICE_PROFILES[lang] || VOICE_PROFILES.en;
     waitForVoice(locale, (voice) => {
+      if (!isCurrent()) return;
       const utterance = new SpeechSynthesisUtterance(phrases.join(" "));
       utterance.lang = locale;
       utterance.rate = profile.rate;
       utterance.pitch = profile.pitch;
       if (voice) utterance.voice = voice;
-      utterance.onstart = () => { setSpeaking(true); audioStatus.textContent = t().playing; };
-      utterance.onend = () => { speechFallbackActive = false; completeGuide(); };
-      utterance.onerror = () => { speechFallbackActive = false; setSpeaking(false); audioStatus.textContent = t().fallback; openButton.hidden = false; };
+      utterance.onstart = () => { if (!isCurrent()) return; setSpeaking(true); audioStatus.textContent = t().playing; };
+      utterance.onend = () => { if (!isCurrent()) return; speechFallbackActive = false; completeGuide(); };
+      utterance.onerror = () => { if (!isCurrent()) return; playbackActive = false; speechFallbackActive = false; setSpeaking(false); audioStatus.textContent = t().fallback; openButton.hidden = false; pauseButton.hidden = true; };
       window.speechSynthesis.speak(utterance);
     });
   }
@@ -573,10 +583,12 @@
     stopSpeechFallback();
     audio.src = nextSource;
     audio.load();
-    audioSourceReady = true;
   }
 
   function completeGuide() {
+    if (!playbackActive) return;
+    playbackActive = false;
+    const generation = playbackGeneration;
     setSpeaking(false);
     pauseButton.hidden = true;
     replayButton.hidden = false;
@@ -584,17 +596,20 @@
     startButton.hidden = true;
     audioStatus.textContent = t().finished;
     clearTimeout(redirectTimer);
-    redirectTimer = window.setTimeout(finishAndOpen, 1100);
+    redirectTimer = window.setTimeout(() => { if (generation === playbackGeneration) finishAndOpen(); }, 1100);
   }
 
   function startPlayback() {
-    clearTimeout(redirectTimer);
     if (hasLocation) {
       startSpeechGuide();
       return;
     }
+    stopPlayback();
+    playbackActive = true;
     prepareAudio();
+    const generation = playbackGeneration;
     audio.play().then(() => {
+      if (generation !== playbackGeneration || !playbackActive) return;
       setSpeaking(true);
       startButton.hidden = true;
       openButton.hidden = true;
@@ -602,16 +617,27 @@
       replayButton.hidden = false;
       audioStatus.textContent = t().playing;
     }).catch(() => {
+      if (generation !== playbackGeneration || !playbackActive) return;
       setSpeaking(false);
       audioStatus.textContent = t().fallback;
       speakFallback();
     });
   }
 
-  function stopPlayback() { audio.pause(); stopSpeechFallback(); setSpeaking(false); }
+  function stopPlayback() {
+    // Invalidate callbacks before pause/cancel can dispatch their own events.
+    playbackGeneration += 1;
+    playbackActive = false;
+    clearTimeout(redirectTimer);
+    redirectTimer = null;
+    audio.pause();
+    stopSpeechFallback();
+    setSpeaking(false);
+  }
 
   function startSpeechGuide() {
-    clearTimeout(redirectTimer);
+    stopPlayback();
+    playbackActive = true;
     startButton.hidden = true;
     openButton.hidden = true;
     pauseButton.hidden = true;
@@ -620,30 +646,37 @@
   }
 
   function replay() {
-    clearTimeout(redirectTimer);
     if (hasLocation) {
       startSpeechGuide();
       return;
     }
-    stopSpeechFallback();
+    stopPlayback();
+    playbackActive = true;
     prepareAudio();
     audio.currentTime = 0;
     startButton.hidden = true;
     openButton.hidden = true;
     pauseButton.hidden = false;
     replayButton.hidden = false;
-    audio.play().then(() => { setSpeaking(true); audioStatus.textContent = t().playing; }).catch(() => speakFallback());
+    const generation = playbackGeneration;
+    audio.play().then(() => { if (generation !== playbackGeneration || !playbackActive) return; setSpeaking(true); audioStatus.textContent = t().playing; }).catch(() => { if (generation === playbackGeneration && playbackActive) speakFallback(); });
   }
 
   function togglePause() {
     if (speechFallbackActive) { if (window.speechSynthesis.paused) { window.speechSynthesis.resume(); pauseButton.textContent = t().pause; } else { window.speechSynthesis.pause(); pauseButton.textContent = t().resume; } return; }
-    if (audio.paused) { audio.play().then(() => { setSpeaking(true); pauseButton.textContent = t().pause; audioStatus.textContent = t().playing; }).catch(() => {}); } else { audio.pause(); setSpeaking(false); pauseButton.textContent = t().resume; audioStatus.textContent = t().paused; }
+    if (audio.paused) {
+      const generation = playbackGeneration;
+      audio.play().then(() => { if (generation !== playbackGeneration || !playbackActive) return; setSpeaking(true); pauseButton.textContent = t().pause; audioStatus.textContent = t().playing; }).catch(() => { if (generation === playbackGeneration && playbackActive) speakFallback(); });
+    } else {
+      playbackGeneration += 1;
+      audio.pause(); setSpeaking(false); pauseButton.textContent = t().resume; audioStatus.textContent = t().paused;
+    }
   }
 
   audio.addEventListener("timeupdate", updateStep);
-  audio.addEventListener("ended", completeGuide);
+  audio.addEventListener("ended", () => { if (playbackActive && !speechFallbackActive) completeGuide(); });
   audio.addEventListener("pause", () => { if (!audio.ended && !speechFallbackActive) setSpeaking(false); });
-  audio.addEventListener("error", () => { audioStatus.textContent = t().fallback; speakFallback(); });
+  audio.addEventListener("error", () => { if (playbackActive && !speechFallbackActive) { audioStatus.textContent = t().fallback; speakFallback(); } });
   languageSelect.addEventListener("change", () => applyLanguage(languageSelect.value));
   startButton.addEventListener("click", startPlayback);
   openButton.addEventListener("click", finishAndOpen);
