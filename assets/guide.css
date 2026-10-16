@@ -1,3 +1,5 @@
+.language-fallback { font-size: .9rem; color: var(--ink); padding: 10px 0; text-align: center; }
+
 :root {
   --ink: #2b1619;
   --muted: #6e5b5e;

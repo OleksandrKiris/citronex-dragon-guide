@@ -8,12 +8,12 @@
   <title>CITRONEX | Przewodnik</title>
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="assets/brand/citronex-hydra-logo-web.png">
-  <link rel="stylesheet" href="assets/guide.css?v=20260717-location-copy-dragon">
+  <link rel="stylesheet" href="assets/guide.css?v=20261016-safe-language1">
 </head>
 <body>
   <div class="page-shell">
     <header class="topbar">
-      <a class="brand" href="https://oleksandrkiris.github.io/citronex-hydra-project/" aria-label="CITRONEX">
+      <a class="brand" href="https://oleksandrkiris.github.io/citronex-hydra-project/" aria-label="CITRONEX" data-hydra-link>
         <img src="assets/brand/citronex-hydra-logo-web.png" alt="CITRONEX">
         <span class="brand-name">CITRONEX</span>
       </a>
@@ -32,6 +32,7 @@
         </select>
       </label>
     </header>
+    <p id="languageFallback" class="language-fallback" role="status" hidden></p>
 
     <main id="guideApp" class="guide-app" hidden>
       <section class="location-banner" aria-live="polite">
@@ -123,7 +124,7 @@
       <div class="invalid-icon" aria-hidden="true">!</div>
       <h1>Nie wybrano lokalizacji</h1>
       <p>Wr&oacute;&#263; do g&#322;&oacute;wnego portalu CITRONEX i wybierz miejsce pracy.</p>
-      <a class="action-button action-primary" href="https://oleksandrkiris.github.io/citronex-hydra-project/">Wr&oacute;&#263; do portalu</a>
+      <a class="action-button action-primary" href="https://oleksandrkiris.github.io/citronex-hydra-project/" data-hydra-link>Wr&oacute;&#263; do portalu</a>
     </section>
 
     <div id="languageGate" class="language-gate" hidden>
@@ -148,6 +149,6 @@
 
     <footer class="footer-note">CITRONEX &middot; kr&oacute;tki przewodnik przed szkoleniem</footer>
   </div>
-  <script src="assets/guide.js?v=20260717-location-copy-dragon" defer></script>
+  <script src="assets/guide.js?v=20261016-safe-language1" defer></script>
 </body>
 </html>

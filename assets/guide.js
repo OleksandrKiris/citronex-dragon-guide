@@ -397,14 +397,24 @@
   }
 };
   const BUILD = "20260717-location-copy";
+  function readSaved(key) {
+    try { return localStorage.getItem(key) || ""; } catch { return ""; }
+  }
+  function savePreference(key, value) {
+    try { localStorage.setItem(key, value); } catch { /* Storage is optional; training stays accessible. */ }
+  }
   const params = new URLSearchParams(window.location.search);
   const locationKey = params.get("location");
   const hasLocation = Object.prototype.hasOwnProperty.call(TARGETS, locationKey);
   const genericGuide = !locationKey;
   const validLocation = hasLocation || genericGuide;
   const forceGuide = params.get("welcome") === "1";
-  const queryLang = LANGS.includes(params.get("lang")) ? params.get("lang") : "";
-  const storedLang = LANGS.includes(localStorage.getItem("cxDragonGuide:lang")) ? localStorage.getItem("cxDragonGuide:lang") : "";
+  const requestedLang = params.get("lang") || "";
+  const fallbackLanguage = ["ka", "hy"].includes(requestedLang);
+  const normalizedLang = requestedLang === "uk" ? "ua" : fallbackLanguage ? "en" : requestedLang;
+  const queryLang = LANGS.includes(normalizedLang) ? normalizedLang : "";
+  const savedLang = readSaved("cxDragonGuide:lang");
+  const storedLang = LANGS.includes(savedLang) ? savedLang : "";
   function detectBrowserLanguage() {
     const candidates = [navigator.language, ...(Array.isArray(navigator.languages) ? navigator.languages : [])];
     for (const raw of candidates) {
@@ -451,7 +461,20 @@
 
   function applyLanguage(nextLang) {
     lang = LANGS.includes(nextLang) ? nextLang : "en";
-    localStorage.setItem("cxDragonGuide:lang", lang);
+    savePreference("cxDragonGuide:lang", lang);
+    try {
+      const current = new URL(window.location.href);
+      current.searchParams.set("lang", lang);
+      history.replaceState(history.state, "", current.toString());
+    } catch { /* Embedded browser history may be restricted. */ }
+    const portal = new URL("https://oleksandrkiris.github.io/citronex-hydra-project/");
+    portal.searchParams.set("lang", lang);
+    document.querySelectorAll("[data-hydra-link]").forEach(link => { link.href = portal.toString(); });
+    const fallbackNote = $("languageFallback");
+    if (fallbackNote) {
+      fallbackNote.hidden = !(fallbackLanguage && lang === "en");
+      fallbackNote.textContent = `${requestedLang === "ka" ? "ქართული" : "Հայերեն"} → English (EN)`;
+    }
     document.documentElement.lang = lang === "ua" ? "uk" : lang;
     languageSelect.value = lang;
     const copy = { ...t(), ...(TRANSLATION_REFINEMENTS[lang] || {}) };
@@ -490,11 +513,11 @@
 
   function finishAndOpen() {
     if (!validLocation) return;
-    if (hasLocation) localStorage.setItem(`cxDragonGuide:${locationKey}:seen:${BUILD}`, "1");
+    if (hasLocation) savePreference(`cxDragonGuide:${locationKey}:seen:${BUILD}`, "1");
     window.location.assign(targetUrl());
   }
 
-  function wasSeen() { return hasLocation && localStorage.getItem(`cxDragonGuide:${locationKey}:seen:${BUILD}`) === "1"; }
+  function wasSeen() { return hasLocation && readSaved(`cxDragonGuide:${locationKey}:seen:${BUILD}`) === "1"; }
 
   function setSpeaking(active) { dragonWrap.classList.toggle("is-speaking", active); }
 
