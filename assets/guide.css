@@ -1,13 +1,13 @@
 .language-fallback { font-size: .9rem; color: var(--ink); padding: 10px 0; text-align: center; }
 
 :root {
-  --ink: #2b1619;
-  --muted: #6e5b5e;
-  --paper: #fffaf7;
+  --ink: #101820;
+  --muted: #4d5a68;
+  --paper: #eef3f7;
   --surface: #ffffff;
-  --line: #eadfe0;
-  --red: #b81424;
-  --red-dark: #7e0e1a;
+  --line: #cdd8e5;
+  --red: #d71920;
+  --red-dark: #8f1117;
   --gold: #eea817;
   --green: #1c8554;
   --shadow: 0 16px 42px rgba(91, 20, 29, .12);
@@ -243,12 +243,12 @@ body { background: #edf3ef; }
 
 /* Unified CITRONEX frontend standard 2026-07-16. */
 :root {
-  --cx-bg: #f4f7f5;
+  --cx-bg: #eef3f7;
   --cx-surface: #ffffff;
-  --cx-text: #17211c;
-  --cx-muted: #5f6d65;
-  --cx-line: #dce6df;
-  --cx-red: #c7352e;
+  --cx-text: #101820;
+  --cx-muted: #4d5a68;
+  --cx-line: #cdd8e5;
+  --cx-red: #d71920;
   --cx-green: #15803d;
   --cx-blue: #2563eb;
   --cx-yellow: #c26b08;
@@ -282,8 +282,8 @@ body {
   z-index: 20;
   min-height: 58px;
   padding: 7px 0;
-  border-bottom: 1px solid rgba(220, 230, 223, .95);
-  background: rgba(244, 247, 245, .94);
+  border-bottom: 1px solid var(--cx-line);
+  background: rgba(238, 243, 247, .96);
   box-shadow: 0 6px 18px rgba(23, 33, 28, .07);
   backdrop-filter: blur(16px);
 }
@@ -301,14 +301,17 @@ body {
 
 .brand img {
   width: 40px;
-  height: 40px;
+  height: 56px;
+  flex-shrink: 0;
   box-shadow: 0 6px 14px rgba(23, 33, 28, .08);
 }
 
 .brand-name {
   color: var(--cx-text);
   font-size: 13px;
-  line-height: 1.1;
+  line-height: 1.2;
+  white-space: normal;
+  overflow: visible;
 }
 
 .language-picker select {
@@ -431,7 +434,7 @@ body {
 
   .brand img {
     width: 34px;
-    height: 34px;
+    height: 48px;
   }
 
   .brand-name {
@@ -490,12 +493,12 @@ body {
 }
 
 /* Final visual overrides keep the dragon panel consistent after the shared theme. */
-body { background: #edf3ef; }
+body { background: var(--cx-bg); }
 .page-shell { width: min(100%, 680px); padding-inline: clamp(10px, 3vw, 22px); }
 .guide-app { gap: 12px; padding-top: 10px; }
 .dragon-stage { gap: 12px; padding: clamp(10px, 2vw, 16px) clamp(8px, 2vw, 14px) 14px; }
 .dragon-wrap { width: min(100%, 344px); padding: 2px 6px 0; }
-.speech-bubble { background: #f8fbf9; box-shadow: 0 6px 16px rgba(23, 33, 28, .06); }
+.speech-bubble { background: #f7f9fc; box-shadow: 0 6px 16px rgba(23, 33, 28, .06); }
 .action-primary { min-height: 58px; font-size: .96rem; }
 
 @media (max-width: 430px) {
@@ -505,4 +508,15 @@ body { background: #edf3ef; }
 
 @media (max-width: 340px) {
   .dragon-wrap { width: min(100%, 252px); }
+}
+
+/* Shared PrimServ navigation remains available before and after the guide. */
+.service-nav { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; padding: 12px 0 4px; }
+.service-nav a { display: flex; align-items: center; justify-content: center; min-height: 44px; min-width: 0; padding: 10px 12px; border: 1px solid var(--cx-line); border-radius: 12px; background: #fff; color: var(--cx-text); font-size: .88rem; font-weight: 700; line-height: 1.35; text-align: center; text-decoration: none; overflow-wrap: anywhere; }
+.service-nav a:hover { border-color: var(--cx-red); color: var(--red-dark); }
+.service-nav a:focus-visible, .brand:focus-visible { outline: 3px solid #2364d2; outline-offset: 2px; }
+.gate-logo { width: 60px; height: 85px; object-fit: contain; }
+
+@media (min-width: 600px) {
+  .service-nav { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 }

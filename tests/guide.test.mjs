@@ -48,6 +48,37 @@ test("saved language is read once instead of repeating a synchronous storage loo
   assert.equal(c.reads.filter(key => key === "cxDragonGuide:lang").length, 1);
 });
 
+for (const lang of locales) test(`${lang}: PrimServ services preserve supported language without leaking guide parameters`, () => {
+  const c = boot(`location=ryczywol&lang=${lang}&welcome=1&context=private`, { blocked: true });
+  const jobs = new URL(c.node("jobsLink").href);
+  assert.equal(jobs.origin, "https://oleksandrkiris.github.io");
+  assert.equal(jobs.pathname, "/kiris-jobs/");
+  assert.equal(jobs.search, `?lang=${lang === "ua" ? "uk" : lang}`);
+  assert.ok(c.node("companyLink").textContent.includes("PrimServ"));
+  assert.ok(c.node("jobsLink").textContent.length > 2);
+  assert.ok(c.node("botLink").textContent.includes("Telegram"));
+  assert.match(c.node("hydraLink").textContent, /Hydr/);
+  c.choose(lang === "en" ? "ua" : "en");
+  assert.equal(new URL(c.node("jobsLink").href).searchParams.get("lang"), lang === "en" ? "uk" : "en");
+  assert.equal(c.redirects.length, 0, "Service navigation does not trigger an automatic redirect");
+  assert.equal(c.node("guideAudio").loads, undefined, "Service navigation does not preload audio");
+});
+
+test("Georgian fallback is visible and service navigation follows the displayed English", () => {
+  const c = boot("location=siechnice&lang=ka&welcome=1");
+  assert.equal(c.node("languageFallback").hidden, false);
+  assert.match(c.node("languageFallback").textContent, /English \(EN\)/);
+  assert.equal(new URL(c.node("jobsLink").href).searchParams.get("lang"), "en");
+});
+
+test("invalid location still offers language-aware service links and an immediate return", () => {
+  const c = boot("location=unknown&lang=uk", { blocked: true });
+  assert.equal(c.node("invalidState").hidden, false);
+  assert.equal(new URL(c.node("jobsLink").href).searchParams.get("lang"), "uk");
+  assert.ok(c.links.every(link => new URL(link.href).searchParams.get("lang") === "ua"));
+  assert.equal(c.timers.length, 0);
+});
+
 test("blocked storage does not prevent the guide from loading or opening training", () => {
   const c = boot("location=siechnice&lang=ua&welcome=1", { blocked: true });
   assert.equal(c.node("guideApp").hidden, false);
@@ -125,13 +156,37 @@ test("original spoken instructions, MP3 paths and completion build remain unchan
   assert.ok(source.includes('const BUILD = "20260717-location-copy"'));
 });
 
-test("real HTML exposes the fallback note and both return links; changed CSS/JS have new cache URLs", async () => {
+test("real HTML exposes the fallback note and all return links; changed CSS/JS have new cache URLs", async () => {
   const html = await fs.readFile(new URL("../index.html", import.meta.url), "utf8");
   const sw = await fs.readFile(new URL("../sw.js", import.meta.url), "utf8");
   assert.ok(html.includes('id="languageFallback" class="language-fallback" role="status" hidden'));
-  assert.equal((html.match(/data-hydra-link/g) || []).length, 2);
+  assert.equal((html.match(/data-hydra-link/g) || []).length, 3);
   for (const path of ["assets/guide.js", "assets/guide.css"]) {
-    assert.ok(html.includes(`${path}?v=20261016-safe-language1`));
-    assert.ok(sw.includes(`${path}?v=20261016-safe-language1`));
+    assert.ok(html.includes(`${path}?v=20261016-primserv-guide1`));
+    assert.ok(sw.includes(`${path}?v=20261016-primserv-guide1`));
   }
+});
+
+test("official PrimServ assets, direct links and manifest stay consistent with the cache", async () => {
+  const html = await fs.readFile(new URL("../index.html", import.meta.url), "utf8");
+  const manifest = JSON.parse(await fs.readFile(new URL("../manifest.webmanifest", import.meta.url), "utf8"));
+  const sw = await fs.readFile(new URL("../sw.js", import.meta.url), "utf8");
+  for (const [name, expected] of Object.entries({
+    "primserv-logo.svg": "1a29802a4a0065ad84e8f8dbdd5bc46dcb9b67bbecb2190de6a99464feaf5157",
+    "primserv-icon-192.png": "4b93c4c36e29ec11fc4320703a39a06bd956e4f6dfec4a6a84ad906b6ab674e5"
+  })) {
+    const bytes = await fs.readFile(new URL(`../assets/brand/${name}`, import.meta.url));
+    assert.equal(createHash("sha256").update(bytes).digest("hex"), expected);
+    assert.ok(sw.includes(`./assets/brand/${name}`));
+  }
+  assert.match(html, /id="companyLink" href="https:\/\/www\.primserv\.pl\/"/);
+  assert.match(html, /id="botLink" href="https:\/\/t\.me\/KirisWorkPoland_bot"/);
+  assert.match(html, /<nav class="service-nav" aria-label="PrimServ">/);
+  assert.ok(html.includes('name="theme-color" content="' + manifest.theme_color + '"'));
+  assert.equal(manifest.short_name, "PrimServ");
+  assert.equal(manifest.icons[0].sizes, "192x192");
+  assert.ok(html.includes("manifest.webmanifest?v=20261016-primserv-guide1"));
+  assert.ok(sw.includes("manifest.webmanifest?v=20261016-primserv-guide1"));
+  assert.ok(!html.includes("assets/brand/citronex-hydra-logo-web.png"));
+  assert.ok(!sw.includes("assets/brand/citronex-hydra-logo-web.png"));
 });

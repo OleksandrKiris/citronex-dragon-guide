@@ -27,7 +27,7 @@ function worker({ network = new Response('fresh'), cached, failPut = false, fail
     caches: {
       open: async name => { calls.open.push(name); return cache; },
       match: async (...args) => { calls.match.push(args); return cached; },
-      keys: async () => ['citronex-dragon-guide-older', 'citronex-dragon-guide-20261016-safe-language1', 'unrelated-cache'],
+      keys: async () => ['citronex-dragon-guide-older', 'citronex-dragon-guide-20261016-primserv-guide1', 'unrelated-cache'],
       delete: async key => { calls.deleted.push(key); },
     },
     fetch: async request => {
@@ -108,10 +108,13 @@ test('cross-origin and non-GET requests are not intercepted', () => {
   assert.equal(w.calls.match.length, 0);
 });
 
-test('install preserves six core requests, reload mode, and skipWaiting', async () => {
+test('install caches seven core resources including both official assets, without preloading audio', async () => {
   const w = worker();
   await w.lifecycle('install');
-  assert.equal(w.calls.add.length, 6);
+  assert.equal(w.calls.add.length, 7);
+  assert.ok(w.calls.add.some(request => request.url.endsWith('/assets/brand/primserv-logo.svg')));
+  assert.ok(w.calls.add.some(request => request.url.endsWith('/assets/brand/primserv-icon-192.png')));
+  assert.ok(w.calls.add.every(request => !request.url.includes('/audio/')));
   assert.ok(w.calls.add.every(request => request.cache === 'reload'));
   assert.equal(w.calls.skip, 1);
   assert.equal(w.calls.match.length, 0);
@@ -120,7 +123,7 @@ test('install preserves six core requests, reload mode, and skipWaiting', async 
 test('missing optional core resources cannot prevent installation', async () => {
   const w = worker({ failAdd: true });
   await w.lifecycle('install');
-  assert.equal(w.calls.add.length, 6);
+  assert.equal(w.calls.add.length, 7);
   assert.equal(w.calls.skip, 1);
 });
 
