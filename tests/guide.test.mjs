@@ -29,6 +29,7 @@ function boot(query = "location=siechnice&lang=pl&welcome=1", options = {}) {
   const location = { href: url.href, search: url.search, assign: value => redirects.push(value) };
   const localStorage = {
     getItem(key) { reads.push(key); if (options.blocked || options.blockedRead) throw Error("Storage blocked"); return storage.get(key) || null; },
+    removeItem(key) { if (options.blocked || options.blockedWrite) throw Error("Storage blocked"); storage.delete(key); },
     setItem(key, value) { if (options.blocked || options.blockedWrite) throw Error("Storage blocked"); storage.set(key, value); }
   };
   const links = ["brand", "returnLink", "invalidReturn"].map(node);
@@ -520,12 +521,14 @@ test("untrusted location does not schedule or execute a redirect", () => {
   assert.equal(c.redirects.length, 0);
 });
 
-test("existing completion flag still skips an already seen location", () => {
-  const c = boot("location=ryczywol&lang=pl", { storage: { "cxDragonGuide:ryczywol:seen:20260717-location-copy": "1" } });
-  assert.equal(c.timers.length, 1);
-  assert.equal(c.timers[0].ms, 80);
-  c.timers[0].fn();
-  assert.equal(new URL(c.redirects[0]).pathname, "/citronex-ryczywol-szkolenie/");
+test("existing completion flag stays stored without bypassing explicit location controls", () => {
+  const key = 'cxDragonGuide:ryczywol:seen:20260717-location-copy';
+  const c = boot('location=ryczywol&lang=pl', { storage: { [key]: '1' } });
+  assert.equal(c.timers.length, 0);
+  assert.equal(c.redirects.length, 0);
+  assert.equal(c.node('guideApp').hidden, false);
+  assert.equal(c.storage.get(key), '1');
+  assert.equal(c.node('locationSelect').value, 'ryczywol');
 });
 
 test("original spoken instructions, MP3 paths and completion build remain unchanged", () => {
@@ -539,7 +542,7 @@ test("real HTML exposes the fallback note and all return links; changed CSS/JS h
   assert.ok(html.includes('id="languageFallback" class="language-fallback" role="status" hidden'));
   assert.equal((html.match(/data-hydra-link/g) || []).length, 3);
   for (const path of ["assets/guide.js", "assets/guide.css"]) {
-    const version = path.endsWith(".js") ? "20261017-text-path1" : "20261016-primserv-guide1";
+    const version = path.endsWith(".js") ? "20261018-location-path1" : "20261016-primserv-guide1";
     assert.ok(html.includes(`${path}?v=${version}`));
     assert.ok(sw.includes(`${path}?v=${version}`));
   }
@@ -667,6 +670,9 @@ for (const lang of ['ka','tr','hy']) for (const location of Object.keys(targets)
   assert.equal(copied.searchParams.get('location'), location);
   assert.equal(copied.searchParams.has('secret'), false);
   const restored = boot(`lang=${lang}&welcome=1`, { storage: Object.fromEntries(c.storage) });
+  assert.equal(restored.node('locationSelect').value, '');
+  assert.equal(restored.node('lastLocationPanel').hidden, false);
+  restored.node('returnLocation').emit('click');
   assert.equal(restored.node('locationSelect').value, location);
   c.node('openButton').emit('click');
   const target = new URL(c.redirects[0]);
@@ -700,4 +706,78 @@ for (const lang of ['ka','tr','hy']) test(`${lang}: invalid/corrupt location is 
   assert.equal(safe.storage.get('unrelated'), 'keep');
   safe.node('locationSelect').value = 'https://bad.invalid';safe.node('locationSelect').emit('change');
   assert.equal(new URL(safe.location.href).searchParams.has('location'), false);
+});
+
+const allLocationLangs = [...locales, 'ka', 'tr', 'hy'];
+for (const selectedLang of allLocationLangs) for (const target of Object.keys(targets)) test(`${selectedLang}/${target}: unified select return clear respects URL privacy and progress`, async () => {
+  const key = 'cxDragonGuide:ryczywol:seen:20260717-location-copy';
+  const writes = [];
+  const c = boot(`lang=${selectedLang}&location=siechnice&private=secret&progress=99`, { storage: { 'cxDragonGuide:location': 'ryczywol', [key]: '1', unrelated: 'keep' }, clipboard: { writeText: async value => writes.push(value) } });
+  assert.equal(c.node('locationSelect').value, 'siechnice', 'URL wins over saved last');
+  assert.equal(c.node('lastLocationPanel').hidden, false);
+  assert.ok(c.node('locationSelectLabel').textContent.length > 5);
+  c.node('locationSelect').value = target;c.node('locationSelect').emit('change');
+  assert.equal(c.node('locationSelect').value, target);
+  assert.equal(c.storage.get('cxDragonGuide:location'), target);
+  assert.equal(new URL(c.location.href).searchParams.has('private'), false);
+  assert.equal(new URL(c.location.href).searchParams.has('progress'), false);
+  c.node('copyGuideLink').emit('click');await new Promise(setImmediate);
+  assert.equal(new URL(writes[0]).searchParams.get('lang'), selectedLang);
+  assert.equal(new URL(writes[0]).searchParams.get('location'), target);
+  c.node('locationSelect').value = '';c.node('locationSelect').emit('change');
+  assert.equal(c.node('locationSelect').value, '');
+  assert.equal(c.node('lastLocationPanel').hidden, false);
+  c.node('returnLocation').emit('click');
+  assert.equal(c.node('locationSelect').value, target);
+  c.node('clearLocation').emit('click');
+  assert.equal(c.node('lastLocationPanel').hidden, true);
+  assert.equal(c.node('locationSelect').value, '');
+  assert.equal(c.storage.has('cxDragonGuide:location'), false);
+  assert.equal(c.storage.get(key), '1');assert.equal(c.storage.get('unrelated'), 'keep');
+  assert.equal(c.document.activeElement, c.node('locationSelect'));
+  assert.equal(new URL(c.node('guideLinkURL').value).searchParams.has('location'), false);
+  assert.equal(c.node('guideAudio').loads || 0, 0);assert.equal(c.utterances.length, 0);assert.equal(c.redirects.length, 0);
+});
+for (const selectedLang of allLocationLangs) test(`${selectedLang}: stored last is explicit; invalid URL recovers; optional storage`, () => {
+  const c = boot(`lang=${selectedLang}&welcome=1`, { storage: { 'cxDragonGuide:location': 'ryczywol' } });
+  assert.equal(c.node('locationSelect').value, '');assert.equal(c.node('lastLocationPanel').hidden, false);
+  c.node('returnLocation').emit('click');assert.equal(c.node('locationSelect').value, 'ryczywol');
+  const bad = boot(`lang=${selectedLang}&location=unknown`, { blocked: true, blockedHistory: true });
+  assert.equal(bad.node('invalidState').hidden, false);
+  bad.node('locationSelect').value='siechnice';bad.node('locationSelect').emit('change');
+  assert.equal(bad.node('guideApp').hidden, false);assert.equal(bad.node('invalidState').hidden, true);
+  assert.equal(bad.node('locationSelect').value, 'siechnice');
+  assert.ok(bad.node('locationChoiceStatus').textContent.length > 10);
+  bad.node('locationSelect').value='';bad.node('locationSelect').emit('change');
+  bad.node('returnLocation').emit('click');assert.equal(bad.node('locationSelect').value, 'siechnice');
+  bad.node('clearLocation').emit('click');assert.equal(bad.node('lastLocationPanel').hidden, true);
+  assert.equal(bad.redirects.length,0);
+  const corrupt=boot(`lang=${selectedLang}`, { storage:{ 'cxDragonGuide:location':'https://evil.invalid/?private=x' } });
+  assert.equal(corrupt.node('lastLocationPanel').hidden,true);assert.equal(corrupt.node('locationSelect').value,'');
+});
+
+test('late clipboard rejection after location clear cannot expose previous link', async () => {
+ let reject;
+ const c=boot('lang=en&location=siechnice&welcome=1',{clipboard:{writeText:()=>new Promise((_a,b)=>reject=b)}});
+ c.node('copyGuideLink').emit('click');c.node('clearLocation').emit('click');reject(Error('late'));await new Promise(setImmediate);
+ assert.equal(c.node('manualGuideLink').hidden,true);assert.equal(c.node('copyGuideStatus').textContent,'');
+ assert.equal(new URL(c.node('guideLinkURL').value).searchParams.has('location'),false);
+});
+for (const reject of [false, true]) test(`clear invalidates late audio ${reject ? 'rejection' : 'success'} without clearing progress`, async () => {
+ const c=boot('lang=en&welcome=1',{deferAudio:true,storage:{'cxDragonGuide:location':'ryczywol'}});
+ c.node('startButton').emit('click');c.node('clearLocation').emit('click');
+ const status=c.node('audioStatus').textContent;
+ if(reject)c.playRequests[0].reject(Error('late'));else c.playRequests[0].resolve();
+ await new Promise(setImmediate);
+ assert.equal(c.node('audioStatus').textContent,status);
+ assert.equal(c.node('pauseButton').hidden,true);assert.equal(c.redirects.length,0);
+});
+for (const lang of allLocationLangs) test(`${lang}: generic choice remembers departed URL location even after denied-storage reload`, () => {
+ const c=boot(`lang=${lang}&location=ryczywol&welcome=1`,{blocked:true});
+ assert.equal(c.node('lastLocationPanel').hidden,true);
+ c.node('locationSelect').value='';c.node('locationSelect').emit('change');
+ assert.equal(c.node('lastLocationPanel').hidden,false);
+ assert.ok(c.node('locationChoiceStatus').textContent.length>10);
+ c.node('returnLocation').emit('click');assert.equal(c.node('locationSelect').value,'ryczywol');
+ assert.equal(c.redirects.length,0);assert.equal(c.node('guideAudio').loads||0,0);
 });

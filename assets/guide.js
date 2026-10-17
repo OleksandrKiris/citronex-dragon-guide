@@ -416,12 +416,14 @@
     try { return localStorage.getItem(key) || ""; } catch { return ""; }
   }
   function savePreference(key, value) {
-    try { localStorage.setItem(key, value); } catch { /* Storage is optional; training stays accessible. */ }
+    try { localStorage.setItem(key, value); return true; } catch { return false; /* Storage is optional. */ }
   }
   const params = new URLSearchParams(window.location.search);
   const requestedLang = params.get("lang") || "";
-  const savedTextLocation = !params.has('location') && TEXT_LANGS.includes(requestedLang || readSaved('cxDragonGuide:lang')) ? readSaved('cxDragonGuide:location') : '';
-  let locationKey = params.get("location") || (Object.hasOwn(TARGETS, savedTextLocation) ? savedTextLocation : null);
+  const savedLocation = readSaved('cxDragonGuide:location');
+  let lastLocationChoice = Object.hasOwn(TARGETS, savedLocation) ? savedLocation : '';
+  let locationMemoryOnly = false;
+  let locationKey = params.get("location") || null;
   let hasLocation = Object.prototype.hasOwnProperty.call(TARGETS, locationKey);
   let genericGuide = !locationKey;
   let validLocation = hasLocation || genericGuide;
@@ -646,6 +648,190 @@
       title: entry.controls.title, hint: LOCATION_NAMES[location], gate: entry.controls.gateText, spoken: entry.locations[location]
     };
   }
+  const LOCATION_UI = {
+  "pl": [
+    "Wybierz miejsce pracy",
+    "Przewodnik ogólny",
+    "Ostatnie miejsce pracy",
+    "Wróć do ostatniego miejsca",
+    "Usuń wybór",
+    "Wybór miejsca usunięty.",
+    "Nieznane miejsce pracy",
+    "Wybierz prawidłowe miejsce z listy.",
+    "Zapis na urządzeniu jest niedostępny. Wybór działa na tej stronie."
+  ],
+  "en": [
+    "Choose workplace",
+    "General guide",
+    "Last workplace",
+    "Return to last workplace",
+    "Clear selection",
+    "Workplace selection cleared.",
+    "Unknown workplace",
+    "Choose a valid workplace from the list.",
+    "Device storage is unavailable. The selection works on this page."
+  ],
+  "ua": [
+    "Оберіть місце роботи",
+    "Загальний гід",
+    "Останнє місце роботи",
+    "Повернутися до останнього місця",
+    "Очистити вибір",
+    "Вибір місця очищено.",
+    "Невідоме місце роботи",
+    "Оберіть правильне місце зі списку.",
+    "Збереження на пристрої недоступне. Вибір діє на цій сторінці."
+  ],
+  "ru": [
+    "Выберите место работы",
+    "Общий гид",
+    "Последнее место работы",
+    "Вернуться к последнему месту",
+    "Очистить выбор",
+    "Выбор места очищен.",
+    "Неизвестное место работы",
+    "Выберите правильное место из списка.",
+    "Сохранение на устройстве недоступно. Выбор действует на этой странице."
+  ],
+  "az": [
+    "İş yerini seçin",
+    "Ümumi bələdçi",
+    "Son iş yeri",
+    "Son iş yerinə qayıt",
+    "Seçimi sil",
+    "İş yeri seçimi silindi.",
+    "Naməlum iş yeri",
+    "Siyahıdan düzgün iş yerini seçin.",
+    "Cihazda saxlama mümkün deyil. Seçim bu səhifədə işləyir."
+  ],
+  "es": [
+    "Elige el lugar de trabajo",
+    "Guía general",
+    "Último lugar de trabajo",
+    "Volver al último lugar",
+    "Borrar selección",
+    "Selección del lugar borrada.",
+    "Lugar de trabajo desconocido",
+    "Elige un lugar válido de la lista.",
+    "No se puede guardar en el dispositivo. La selección funciona en esta página."
+  ],
+  "fil": [
+    "Piliin ang lugar ng trabaho",
+    "Pangkalahatang gabay",
+    "Huling lugar ng trabaho",
+    "Bumalik sa huling lugar",
+    "Alisin ang napili",
+    "Naalis ang napiling lugar.",
+    "Hindi kilalang lugar ng trabaho",
+    "Pumili ng tamang lugar sa listahan.",
+    "Hindi makapag-save sa device. Gumagana ang napili sa pahinang ito."
+  ],
+  "id": [
+    "Pilih tempat kerja",
+    "Panduan umum",
+    "Tempat kerja terakhir",
+    "Kembali ke tempat terakhir",
+    "Hapus pilihan",
+    "Pilihan tempat kerja dihapus.",
+    "Tempat kerja tidak dikenal",
+    "Pilih tempat kerja yang valid dari daftar.",
+    "Penyimpanan perangkat tidak tersedia. Pilihan berlaku di halaman ini."
+  ],
+  "ne": [
+    "कार्यस्थल छान्नुहोस्",
+    "सामान्य मार्गदर्शन",
+    "पछिल्लो कार्यस्थल",
+    "पछिल्लो कार्यस्थलमा फर्कनुहोस्",
+    "छनोट हटाउनुहोस्",
+    "कार्यस्थलको छनोट हटाइयो।",
+    "अज्ञात कार्यस्थल",
+    "सूचीबाट सही कार्यस्थल छान्नुहोस्।",
+    "उपकरणमा सुरक्षित गर्न सकिँदैन। छनोट यस पृष्ठमा काम गर्छ।"
+  ],
+  "ka": [
+    "აირჩიეთ სამუშაო ადგილი",
+    "ზოგადი გზამკვლევი",
+    "ბოლო სამუშაო ადგილი",
+    "ბოლო სამუშაო ადგილზე დაბრუნება",
+    "არჩევანის გასუფთავება",
+    "სამუშაო ადგილის არჩევანი გასუფთავდა.",
+    "უცნობი სამუშაო ადგილი",
+    "სიიდან აირჩიეთ სწორი სამუშაო ადგილი.",
+    "მოწყობილობაზე შენახვა მიუწვდომელია. არჩევანი ამ გვერდზე მოქმედებს."
+  ],
+  "tr": [
+    "Çalışma yeri seçin",
+    "Genel rehber",
+    "Son çalışma yeri",
+    "Son çalışma yerine dön",
+    "Seçimi temizle",
+    "Çalışma yeri seçimi temizlendi.",
+    "Bilinmeyen çalışma yeri",
+    "Listeden geçerli bir çalışma yeri seçin.",
+    "Cihaza kaydetme kullanılamıyor. Seçim bu sayfada geçerlidir."
+  ],
+  "hy": [
+    "Ընտրեք աշխատանքի վայրը",
+    "Ընդհանուր ուղեցույց",
+    "Վերջին աշխատանքի վայրը",
+    "Վերադառնալ վերջին վայրին",
+    "Մաքրել ընտրությունը",
+    "Աշխատանքի վայրի ընտրությունը մաքրված է։",
+    "Անհայտ աշխատանքի վայր",
+    "Ցանկից ընտրեք ճիշտ աշխատանքի վայր։",
+    "Սարքում պահպանումն անհասանելի է։ Ընտրությունը գործում է այս էջում։"
+  ]
+};
+  function renderLocationControls() {
+    const labels = LOCATION_UI[lang] || LOCATION_UI.en;
+    setText('locationSelectLabel', labels[0]);
+    setText('genericLocationOption', labels[1]);
+    $('locationSelect').value = hasLocation ? locationKey : '';
+    setText('lastLocationLabel', labels[2]);
+    setText('lastLocationName', LOCATION_NAMES[lastLocationChoice] || '');
+    setText('returnLocation', labels[3]);
+    setText('clearLocation', labels[4]);
+    $('lastLocationPanel').hidden = !lastLocationChoice;
+    $('clearLocation').hidden = !(lastLocationChoice || hasLocation);
+    $('locationChoiceStatus').textContent = locationMemoryOnly ? labels[8] : '';
+    setText('invalidTitle', labels[6]);
+    setText('invalidText', labels[7]);
+  }
+  function selectLocation(selected, clearLast = false) {
+    if (selected && !Object.hasOwn(TARGETS, selected)) return;
+    const departedLocation = hasLocation ? locationKey : '';
+    locationKey = selected || null;
+    hasLocation = Boolean(selected);
+    genericGuide = !selected;
+    validLocation = true;
+    if (clearLast) {
+      lastLocationChoice = '';
+      try { localStorage.removeItem('cxDragonGuide:location'); locationMemoryOnly = false; } catch { locationMemoryOnly = true; }
+    } else if (selected) {
+      lastLocationChoice = selected;
+      locationMemoryOnly = !savePreference('cxDragonGuide:location', selected);
+    } else if (departedLocation) {
+      lastLocationChoice = departedLocation;
+      locationMemoryOnly = !savePreference('cxDragonGuide:location', departedLocation);
+    }
+    try {
+      const current = new URL(window.location.href);
+      current.search = '';
+      if (current.hash !== '#guideApp') current.hash = '';
+      current.searchParams.set('lang', lang);
+      if (selected) current.searchParams.set('location', selected);
+      current.searchParams.set('welcome', '1');
+      history.replaceState(history.state, '', current.toString());
+    } catch { /* In-memory selection remains usable when History is denied. */ }
+    app.hidden = false;
+    invalidState.hidden = true;
+    applyLanguage(lang);
+    if (clearLast) {
+      const labels = LOCATION_UI[lang] || LOCATION_UI.en;
+      setText('locationChoiceStatus', labels[5] + (locationMemoryOnly ? ' ' + labels[8] : ''));
+      $('locationSelect').focus();
+    }
+  }
   let copyGeneration = 0;
   function publicGuideURL() {
     const url = new URL('https://oleksandrkiris.github.io/citronex-dragon-guide/');
@@ -758,6 +944,7 @@
       setText('invalidText', 'Wróć do głównego portalu HYDRA i wybierz miejsce pracy.');
       setText('invalidReturn', 'Wróć do portalu');
     }
+    renderLocationControls();
     resetGuideCopy();
   }
 
@@ -987,31 +1174,14 @@
   replayButton.addEventListener("click", replay);
   skipButton.addEventListener("click", finishAndOpen);
   $("copyGuideLink").addEventListener("click", copyGuideLink);
-  $('locationSelect').addEventListener('change', () => {
-    const selected = $('locationSelect').value;
-    if (!textOnlyLanguage() || (selected && !Object.hasOwn(TARGETS, selected))) return;
-    locationKey = selected || null;
-    hasLocation = Boolean(selected);
-    genericGuide = !selected;
-    validLocation = true;
-    savePreference('cxDragonGuide:location', selected);
-    try {
-      const current = new URL(window.location.href);
-      if (selected) current.searchParams.set('location', selected);
-      else current.searchParams.delete('location');
-      current.searchParams.set('welcome', '1');
-      history.replaceState(history.state, '', current.toString());
-    } catch { /* Optional history; current controls and public copy still work. */ }
-    applyLanguage(lang);
-  });
+  $('locationSelect').addEventListener('change', () => selectLocation($('locationSelect').value));
+  $('returnLocation').addEventListener('click', () => { if (lastLocationChoice) selectLocation(lastLocationChoice); });
+  $('clearLocation').addEventListener('click', () => selectLocation('', true));
   languageGate.querySelectorAll("[data-gate-lang]").forEach((button) => button.addEventListener("click", () => { applyLanguage(button.dataset.gateLang, true); setGateVisible(false); }));
 
   if (!validLocation) {
     invalidState.hidden = false;
     applyLanguage(lang);
-  } else if (hasLocation && wasSeen() && !forceGuide && !textOnlyLanguage()) {
-    document.body.classList.add("is-redirecting");
-    window.setTimeout(finishAndOpen, 80);
   } else {
     app.hidden = false;
     applyLanguage(lang);

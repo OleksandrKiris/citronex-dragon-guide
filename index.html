@@ -49,6 +49,22 @@
     </nav>
     <p id="languageFallback" class="language-fallback" role="status" hidden></p>
 
+      <section id="locationControls" aria-labelledby="locationSelectLabel">
+        <label id="locationSelectLabel" for="locationSelect"></label>
+        <select id="locationSelect" style="max-width:100%">
+          <option id="genericLocationOption" value=""></option>
+          <option value="siechnice">Siechnice</option>
+          <option value="ryczywol">Ryczywół</option>
+          <option value="zgorzelec_bogatynia">Zgorzelec / Bogatynia</option>
+        </select>
+        <div id="lastLocationPanel" hidden>
+          <p><span id="lastLocationLabel"></span>: <strong id="lastLocationName"></strong></p>
+          <button id="returnLocation" aria-describedby="lastLocationLabel lastLocationName" class="action-button action-secondary" type="button"></button>
+        </div>
+        <button id="clearLocation" class="action-button action-secondary" type="button" hidden></button>
+        <p id="locationChoiceStatus" class="audio-status" role="status" aria-live="polite"></p>
+      </section>
+
     <main id="guideApp" class="guide-app" hidden>
       <section class="location-banner" aria-live="polite">
         <span class="location-icon" aria-hidden="true">&#x2316;</span>
@@ -60,13 +76,6 @@
       </section>
 
       <section id="textPathControls" hidden>
-        <label id="locationSelectLabel" for="locationSelect"></label>
-        <select id="locationSelect" style="max-width:100%">
-          <option id="genericLocationOption" value=""></option>
-          <option value="siechnice">Siechnice</option>
-          <option value="ryczywol">Ryczywół</option>
-          <option value="zgorzelec_bogatynia">Zgorzelec / Bogatynia</option>
-        </select>
         <ol style="list-style:none;padding:0"><li id="textStep1"></li><li id="textStep2"></li><li id="textStep3"></li></ol>
       </section>
       <p id="audioLanguageNotice" class="audio-status" hidden></p>
@@ -185,6 +194,6 @@
 
     <footer class="footer-note">PrimServ &middot; HYDRA</footer>
   </div>
-  <script src="assets/guide.js?v=20261017-text-path1" defer></script>
+  <script src="assets/guide.js?v=20261018-location-path1" defer></script>
 </body>
 </html>
