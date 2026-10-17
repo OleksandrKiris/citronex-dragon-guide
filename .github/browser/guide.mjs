@@ -1,5 +1,6 @@
 // User-authorized GitHub Actions acceptance; never launch a local substitute browser.
 import assert from 'node:assert/strict';
+import { headUpgradeReady } from './cache-upgrade-gate.mjs';
 import { createRequire } from 'node:module';
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
@@ -234,12 +235,18 @@ try {
   const seen = 'cxDragonGuide:ryczywol:seen:20260717-location-copy';
   assert.equal(await page.evaluate(key => localStorage.getItem(key), seen), '1');
   await page.evaluate(async () => { localStorage.setItem('unrelated', 'keep'); await caches.open('unrelated-cache'); });
+  await page.evaluate(() => { window.__baseController = navigator.serviceWorker.controller; });
   oldVersion = false;
   await page.evaluate(async () => { const reg = await navigator.serviceWorker.ready; await reg.update(); });
-  await page.waitForFunction(async ({ baseCache, headCache }) => {
-    const keys = await caches.keys();
-    return keys.includes(headCache) && !keys.includes(baseCache);
-  }, { baseCache, headCache });
+  await page.waitForFunction(async ({ baseCache, headCache, predicate }) => {
+    const reg = await navigator.serviceWorker.ready;
+    const controller = navigator.serviceWorker.controller;
+    return Function('return (' + predicate + ')')()({
+      keys: await caches.keys(), baseCache, headCache,
+      controllerChanged: Boolean(controller && controller !== window.__baseController),
+      activated: Boolean(controller && controller.state === 'activated' && reg.active === controller)
+    });
+  }, { baseCache, headCache, predicate: headUpgradeReady.toString() });
   await page.reload(); await ready(page); await controlled(page);
   assert.equal(await page.evaluate(key => localStorage.getItem(key), seen), '1');
   assert.equal(await page.evaluate(() => localStorage.getItem('unrelated')), 'keep');
