@@ -12,6 +12,7 @@ on:
       - tests/guide.test.mjs
       - tests/service-worker.test.mjs
       - .github/workflows/check-cleanup.yml
+      - .github/browser/**
 
 permissions:
   contents: read
@@ -19,11 +20,33 @@ permissions:
 jobs:
   service-worker:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: 24
       - run: node --check sw.js
       - run: node --check assets/guide.js
       - run: node --test tests/*.test.mjs
+      - name: Install pinned CI browser tooling
+        run: |
+          npm install --prefix "$RUNNER_TEMP/primserv-browser" --no-save --no-package-lock playwright@1.56.1
+          "$RUNNER_TEMP/primserv-browser/node_modules/.bin/playwright" install --with-deps chromium
+      - name: Exact-version browser acceptance
+        env:
+          PLAYWRIGHT_PACKAGE: ${{ runner.temp }}/primserv-browser/node_modules/playwright
+          BROWSER_REPORT: ${{ runner.temp }}/primserv-browser-report
+          TESTED_HEAD: ${{ github.event.pull_request.head.sha }}
+          TESTED_BASE: ${{ github.event.pull_request.base.sha }}
+        run: node .github/browser/guide.mjs
+      - name: Keep browser evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: guide-browser-${{ github.event.pull_request.head.sha }}
+          path: ${{ runner.temp }}/primserv-browser-report
+          if-no-files-found: error
+          retention-days: 7
