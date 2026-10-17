@@ -538,7 +538,7 @@ test("real HTML exposes the fallback note and all return links; changed CSS/JS h
   assert.ok(html.includes('id="languageFallback" class="language-fallback" role="status" hidden'));
   assert.equal((html.match(/data-hydra-link/g) || []).length, 3);
   for (const path of ["assets/guide.js", "assets/guide.css"]) {
-    const version = path.endsWith(".js") ? "20261017-media-retry1" : "20261016-primserv-guide1";
+    const version = path.endsWith(".js") ? "20261017-tr-fallback1" : "20261016-primserv-guide1";
     assert.ok(html.includes(`${path}?v=${version}`));
     assert.ok(sw.includes(`${path}?v=${version}`));
   }
@@ -566,4 +566,26 @@ test("official PrimServ assets, direct links and manifest stay consistent with t
   assert.ok(sw.includes("manifest.webmanifest?v=20261016-primserv-guide1"));
   assert.ok(!html.includes("assets/brand/citronex-hydra-logo-web.png"));
   assert.ok(!sw.includes("assets/brand/citronex-hydra-logo-web.png"));
+});
+
+for (const requested of ["ka", "tr", "hy"]) test(`${requested}: explicit fallback stays honest without storage or autoplay`, () => {
+  const c = boot(`location=ryczywol&lang=${requested}&welcome=1`, { blocked: true, speech: true, browserLanguage: "pl" });
+  assert.equal(c.document.documentElement.lang, "en");
+  assert.equal(c.node("languageFallback").hidden, false);
+  assert.equal(c.node("languageFallback").textContent, `${{ka: "ქართული", tr: "Türkçe", hy: "Հայերեն"}[requested]} → English (EN)`);
+  assert.equal(c.utterances.length, 0);
+  assert.equal(c.node("guideAudio").loads || 0, 0);
+  assert.equal(c.redirects.length, 0);
+  c.choose("ua");
+  assert.equal(c.node("languageFallback").hidden, true);
+  assert.equal(c.document.documentElement.lang, "uk");
+});
+
+test("tr: explicit fallback takes precedence over a saved language", () => {
+  const c = boot("lang=tr&welcome=1", { storage: { "cxDragonGuide:lang": "pl" } });
+  assert.equal(c.document.documentElement.lang, "en");
+  assert.equal(c.node("languageFallback").hidden, false);
+  assert.equal(c.node("guideAudio").loads || 0, 0);
+  c.node("skipButton").emit("click");
+  assert.equal(new URL(c.redirects[0]).searchParams.get("lang"), "en");
 });

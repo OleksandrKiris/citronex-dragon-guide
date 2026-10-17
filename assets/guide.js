@@ -422,7 +422,7 @@
   const validLocation = hasLocation || genericGuide;
   const forceGuide = params.get("welcome") === "1";
   const requestedLang = params.get("lang") || "";
-  const fallbackLanguage = ["ka", "hy"].includes(requestedLang);
+  const fallbackLanguage = ["ka", "tr", "hy"].includes(requestedLang);
   const normalizedLang = requestedLang === "uk" ? "ua" : fallbackLanguage ? "en" : requestedLang;
   const queryLang = LANGS.includes(normalizedLang) ? normalizedLang : "";
   const savedLang = readSaved("cxDragonGuide:lang");
@@ -495,7 +495,7 @@
     const fallbackNote = $("languageFallback");
     if (fallbackNote) {
       fallbackNote.hidden = !(fallbackLanguage && lang === "en");
-      fallbackNote.textContent = `${requestedLang === "ka" ? "ქართული" : "Հայերեն"} → English (EN)`;
+      fallbackNote.textContent = `${({ ka: "ქართული", tr: "Türkçe", hy: "Հայերեն" })[requestedLang] || ""} → English (EN)`;
     }
     document.documentElement.lang = lang === "ua" ? "uk" : lang;
     languageSelect.value = lang;
