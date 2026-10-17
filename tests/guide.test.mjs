@@ -589,3 +589,15 @@ test("tr: explicit fallback takes precedence over a saved language", () => {
   c.node("skipButton").emit("click");
   assert.equal(new URL(c.redirects[0]).searchParams.get("lang"), "en");
 });
+
+for (const requested of ["ka", "tr", "hy"]) test(`${requested}: reload retains requested fallback language in URL`, () => {
+  const first = boot(`lang=${requested}&welcome=1`, { storage: { "cxDragonGuide:lang": "pl" } });
+  assert.equal(new URL(first.location.href).searchParams.get("lang"), requested);
+  const reloaded = boot(first.location.search.slice(1), { storage: Object.fromEntries(first.storage) });
+  assert.equal(reloaded.document.documentElement.lang, "en");
+  assert.equal(reloaded.node("languageFallback").hidden, false);
+  assert.equal(reloaded.node("languageFallback").textContent, first.node("languageFallback").textContent);
+  reloaded.choose("ua");
+  assert.equal(new URL(reloaded.location.href).searchParams.get("lang"), "ua");
+  assert.equal(reloaded.node("languageFallback").hidden, true);
+});

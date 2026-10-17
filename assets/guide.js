@@ -480,7 +480,7 @@
     savePreference("cxDragonGuide:lang", lang);
     try {
       const current = new URL(window.location.href);
-      current.searchParams.set("lang", lang);
+      current.searchParams.set("lang", fallbackLanguage && lang === "en" ? requestedLang : lang);
       history.replaceState(history.state, "", current.toString());
     } catch { /* Embedded browser history may be restricted. */ }
     const portal = new URL("https://oleksandrkiris.github.io/citronex-hydra-project/");
