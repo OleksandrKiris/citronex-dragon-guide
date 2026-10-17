@@ -328,8 +328,61 @@ try {
     assert.equal(await page.locator('audio').getAttribute('src'), null);
     if (storage === 'corrupt') assert.equal(await page.evaluate(() => localStorage.getItem('unrelated')), 'keep');
     await shot(page, `text-offline-${selected}-${storage}-${width}`);
+    await page.locator('#locationSelect').selectOption('');
+    assert.equal(await page.locator('#lastLocationPanel').isVisible(), true);
+    await keyboard(page, 'returnLocation');
+    assert.equal(await page.locator('#locationSelect').inputValue(), 'zgorzelec_bogatynia');
+    await keyboard(page, 'clearLocation');
+    assert.equal(await page.locator('#locationSelect').inputValue(), '');
+    assert.equal(await page.locator('#lastLocationPanel').isVisible(), false);
+    assert.equal(await page.evaluate(() => document.activeElement.id), 'locationSelect');
+    assert.equal(new URL(await page.locator('#guideLinkURL').inputValue()).searchParams.has('location'), false);
+    if (storage !== 'denied') assert.equal(await page.evaluate(() => localStorage.getItem('cxDragonGuide:location')), null);
+    await page.reload(); await ready(page);
+    assert.equal(await page.locator('#locationSelect').inputValue(), '');
+    assert.equal(await page.locator('#lastLocationPanel').isVisible(), false);
     await offline(ctx, false);
     report.results.push({ scenario: 'ka/tr/hy text path: keyboard language, three locations, copy, reload/Back, blocked/corrupt storage, offline, explicit English audio failure fixture/no TTS', width, selected, storage, pass: true });
+  }
+  for (const width of [1280, 320]) for (const selected of ['pl','en','ua','ru','az','es','fil','id','ne']) {
+    const { ctx, page } = await context(width);
+    await ctx.addInitScript(() => {
+      window.__locationAudioCalls = 0;
+      HTMLMediaElement.prototype.play = function () { window.__locationAudioCalls++; return Promise.reject(Error('No audio expected in selection journey')); };
+      if (window.speechSynthesis) window.speechSynthesis.speak = function () { throw Error('No TTS expected in selection journey'); };
+    });
+    await page.goto(`${base}?lang=${selected}&location=siechnice&welcome=1&private=omit&progress=99#private-progress`); await ready(page);await controlled(page);
+    await page.evaluate(() => { localStorage.setItem('unrelated', 'keep'); localStorage.setItem('cxDragonGuide:ryczywol:seen:20260717-location-copy','1'); });
+    assert.equal(await page.locator('#locationControls').isVisible(), true);
+    assert.equal(await page.locator('#locationSelect').inputValue(),'siechnice');
+    for (const location of ['siechnice','ryczywol','zgorzelec_bogatynia']) {
+      await page.locator('#locationSelect').selectOption(location);
+      const url=new URL(page.url());assert.equal(url.searchParams.get('lang'),selected);assert.equal(url.searchParams.get('location'),location);
+      assert.deepEqual([...url.searchParams.keys()].sort(),['lang','location','welcome']);assert.equal(url.hash,'');
+      const copy=new URL(await page.locator('#guideLinkURL').inputValue());assert.equal(copy.searchParams.get('location'),location);assert.equal(copy.searchParams.get('lang'),selected);
+      await page.locator('#locationSelect').selectOption('');
+      await keyboard(page,'returnLocation');assert.equal(await page.locator('#locationSelect').inputValue(),location);
+    }
+    await page.reload();await ready(page);assert.equal(await page.locator('#locationSelect').inputValue(),'zgorzelec_bogatynia');
+    await shot(page,`location-${selected}-${width}`);
+    await keyboard(page,'skipButton');await page.waitForURL(/citronex-zgorzelec-bogatynia-szkolenie/);
+    assert.equal(new URL(page.url()).searchParams.get('lang'),selected);
+    await page.goBack();await ready(page);assert.equal(await page.locator('#locationSelect').inputValue(),'zgorzelec_bogatynia');
+    await offline(ctx,true);await page.reload();await ready(page);
+    await page.locator('#locationSelect').selectOption('');await keyboard(page,'returnLocation');
+    assert.equal(await page.locator('#locationSelect').inputValue(),'zgorzelec_bogatynia');
+    await keyboard(page,'clearLocation');assert.equal(await page.locator('#lastLocationPanel').isVisible(),false);
+    assert.equal(await page.evaluate(() => document.activeElement.id),'locationSelect');
+    assert.equal(await page.evaluate(() => localStorage.getItem('cxDragonGuide:location')),null);
+    assert.equal(await page.evaluate(() => localStorage.getItem('unrelated')),'keep');
+    assert.equal(await page.evaluate(() => localStorage.getItem('cxDragonGuide:ryczywol:seen:20260717-location-copy')),'1');
+    assert.equal(await page.evaluate(() => window.__locationAudioCalls),0);
+    assert.equal(await page.locator('audio').getAttribute('src'),null);
+    await shot(page,`location-cleared-offline-${selected}-${width}`);
+    await page.reload();await ready(page);assert.equal(await page.locator('#locationSelect').inputValue(),'');
+    assert.equal(await page.locator('#lastLocationPanel').isVisible(),false);
+    await offline(ctx,false);
+    report.results.push({scenario:'old9 unified choice/return/clear,3 sites,public URL privacy,keyboard,progress,reload/Back/offline,no audio',width,selected,pass:true});
   }
   oldVersion = true;
   const { ctx, page } = await context(320);
