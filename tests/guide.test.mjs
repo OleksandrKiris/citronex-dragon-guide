@@ -19,7 +19,7 @@ function boot(query = "location=siechnice&lang=pl&welcome=1", options = {}) {
         emit(key, event = {}) { for (const fn of handlers.get(key) || []) fn({ target: this, ...event }); },
         querySelector: () => ({ focus() {} }), querySelectorAll: () => [],
         setAttribute(key, value) { this[key] = value; },
-        focus() { document.activeElement = this; }, load() { this.loads = (this.loads || 0) + 1; this.error = null; },
+        select() { this.selected = true; }, focus() { document.activeElement = this; }, load() { this.loads = (this.loads || 0) + 1; this.error = null; },
         pause() { this.paused = true; }, play() { if (options.rejectAudio || this.error) return Promise.reject(Error("Audio unavailable")); this.paused = false; return options.deferAudio ? new Promise((resolve, reject) => playRequests.push({ resolve, reject })) : Promise.resolve(); }
       });
     }
@@ -48,7 +48,7 @@ function boot(query = "location=siechnice&lang=pl&welcome=1", options = {}) {
     pause() { this.paused = true; }, resume() { this.paused = false; }
   };
   const context = vm.createContext({ window, document, localStorage, URL, URLSearchParams, history: { state: null, replaceState(_a, _b, value) { if (options.blockedHistory) throw Error("History blocked"); location.href = String(value); location.search = new URL(value).search; } },
-    navigator: { language: options.browserLanguage || "pl", languages: [options.browserLanguage || "pl"] }, clearTimeout(id) { if (timers[id - 1]) timers[id - 1].cancelled = true; }, console,
+    navigator: { clipboard: options.clipboard, language: options.browserLanguage || "pl", languages: [options.browserLanguage || "pl"] }, clearTimeout(id) { if (timers[id - 1]) timers[id - 1].cancelled = true; }, console,
     SpeechSynthesisUtterance: function(text) { this.text = text; },
     fetch() { throw Error("Network and candidate operations forbidden"); } });
   vm.runInContext(source, context);
@@ -538,7 +538,7 @@ test("real HTML exposes the fallback note and all return links; changed CSS/JS h
   assert.ok(html.includes('id="languageFallback" class="language-fallback" role="status" hidden'));
   assert.equal((html.match(/data-hydra-link/g) || []).length, 3);
   for (const path of ["assets/guide.js", "assets/guide.css"]) {
-    const version = path.endsWith(".js") ? "20261017-tr-fallback1" : "20261016-primserv-guide1";
+    const version = path.endsWith(".js") ? "20261017-public-link1" : "20261016-primserv-guide1";
     assert.ok(html.includes(`${path}?v=${version}`));
     assert.ok(sw.includes(`${path}?v=${version}`));
   }
@@ -615,4 +615,48 @@ for (const selected of ['en', 'ua']) test(`tr: explicit manual ${selected} repla
   const reloaded = boot(url.search.slice(1));
   assert.equal(reloaded.document.documentElement.lang, selected === 'ua' ? 'uk' : 'en');
   assert.equal(reloaded.node('languageFallback').hidden, true);
+});
+
+for (const requested of ['tr', 'ka', 'hy', 'uk']) test(`${requested}: copied public link retains requested context and strips unrelated state`, async () => {
+  const writes = [];
+  const c = boot(`lang=${requested}&location=ryczywol&token=private&progress=99&context=secret`, { clipboard: { writeText: async value => writes.push(value) } });
+  c.node('copyGuideLink').emit('click'); await new Promise(setImmediate);
+  const url = new URL(writes[0]);
+  assert.equal(url.origin + url.pathname, 'https://oleksandrkiris.github.io/citronex-dragon-guide/');
+  assert.equal(url.searchParams.get('lang'), requested === 'uk' ? 'ua' : requested);
+  assert.deepEqual([...url.searchParams.keys()].sort(), ['lang', 'location', 'welcome']);
+  assert.equal(url.hash, '#guideApp');
+  assert.equal(c.node('manualGuideLink').hidden, true);
+  assert.ok(c.node('copyGuideStatus').textContent);
+  assert.equal(c.node('guideAudio').loads || 0, 0);
+  assert.equal(c.redirects.length, 0);
+});
+
+for (const clipboard of [undefined, { writeText: async () => { throw Error('denied'); } }]) test('clipboard refusal/unavailable exposes readonly URL for manual selection', async () => {
+  const c = boot('lang=en&location=invalid&secret=private', { clipboard });
+  c.node('copyGuideLink').emit('click'); await new Promise(setImmediate);
+  assert.equal(c.node('manualGuideLink').hidden, false);
+  assert.equal(c.document.activeElement, c.node('guideLinkURL'));
+  assert.equal(c.node('guideLinkURL').selected, true);
+  assert.equal(new URL(c.node('guideLinkURL').value).searchParams.has('location'), false);
+  assert.match(c.node('copyGuideStatus').textContent, /manually/);
+});
+
+for (const reject of [false, true]) test(`late clipboard ${reject ? 'failure' : 'success'} cannot overwrite a new language`, async () => {
+  let settle;
+  const c = boot('lang=tr&welcome=1', { clipboard: { writeText: () => new Promise((resolve, fail) => { settle = reject ? () => fail(Error('denied')) : resolve; }) } });
+  c.node('copyGuideLink').emit('click'); c.choose('ua'); settle();
+  await new Promise(setImmediate);
+  assert.equal(c.node('copyGuideStatus').textContent, '');
+  assert.equal(c.node('manualGuideLink').hidden, true);
+  assert.equal(new URL(c.node('guideLinkURL').value).searchParams.get('lang'), 'ua');
+});
+
+test('only existing public guide anchor is retained; manual EN replaces fallback in copied link', async () => {
+  const writes = [];
+  const c = boot('lang=tr&welcome=1', { clipboard: { writeText: async value => writes.push(value) } });
+  c.location.href = c.location.href.replace('#guideApp', '#private-progress');
+  c.choose('en'); c.node('copyGuideLink').emit('click'); await new Promise(setImmediate);
+  assert.equal(new URL(writes[0]).hash, '');
+  assert.equal(new URL(writes[0]).searchParams.get('lang'), 'en');
 });

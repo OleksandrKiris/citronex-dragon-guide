@@ -233,6 +233,56 @@ try {
     await shot(page, `storage-${storage}`);
     report.results.push({ scenario: storage + ' storage: usable keyboard/audio/language', pass: true });
   }
+  for (const width of [1280, 320]) for (const outcome of ['success', 'denied', 'unavailable', 'pending']) {
+    const { ctx, page } = await context(width);
+    await ctx.addInitScript(({ outcome }) => {
+      window.__copiedLinks = [];
+      Object.defineProperty(navigator, 'clipboard', { configurable: true, value: outcome === 'unavailable' ? undefined : {
+        writeText(value) {
+          window.__copiedLinks.push(value);
+          if (outcome === 'pending') return new Promise(resolve => { window.__settleCopy = resolve; });
+          return outcome === 'denied' ? Promise.reject(new Error('Clipboard denied fixture')) : Promise.resolve();
+        }
+      } });
+    }, { outcome });
+    await page.goto(`${base}?lang=tr&location=ryczywol&welcome=1&token=private&progress=99#private-state`);
+    await ready(page); await controlled(page);
+    await keyboard(page, 'copyGuideLink');
+    const expected = 'https://oleksandrkiris.github.io/citronex-dragon-guide/?lang=tr&location=ryczywol&welcome=1';
+    if (outcome !== 'unavailable') assert.equal(await page.evaluate(() => window.__copiedLinks[0]), expected);
+    if (outcome === 'pending') {
+      await page.locator('#languageSelect').selectOption('ua');
+      await page.evaluate(() => window.__settleCopy());
+      // Cross one rendering turn so the stale promise continuation has run.
+      await page.evaluate(() => new Promise(resolve => requestAnimationFrame(resolve)));
+      assert.equal(await page.locator('#copyGuideStatus').innerText(), '');
+      assert.equal(await page.locator('#manualGuideLink').isVisible(), false);
+      assert.equal(new URL(await page.locator('#guideLinkURL').inputValue()).searchParams.get('lang'), 'ua');
+    } else if (outcome === 'success') {
+      await page.getByText('Link copied.', { exact: true }).waitFor();
+      assert.equal(await page.locator('#manualGuideLink').isVisible(), false);
+    } else {
+      await page.locator('#manualGuideLink').waitFor({ state: 'visible' });
+      assert.equal(await page.locator('#guideLinkURL').inputValue(), expected);
+      assert.equal(await page.locator('#guideLinkURL').getAttribute('readonly'), '');
+      assert.equal(await page.getByLabel('Guide link', { exact: true }).count(), 1);
+      assert.equal(await page.evaluate(() => document.activeElement.id), 'guideLinkURL');
+      assert.equal(await page.locator('#guideLinkURL').evaluate(n => n.selectionEnd - n.selectionStart), expected.length);
+      assert.equal(await page.locator('#copyGuideStatus').innerText(), 'Copy the link below manually.');
+    }
+    await shot(page, `copy-${outcome}-${width}`);
+    await page.locator('#languageSelect').selectOption('en');
+    assert.equal(await page.locator('#copyGuideStatus').innerText(), '');
+    assert.equal(await page.locator('#manualGuideLink').isVisible(), false);
+    assert.equal(new URL(await page.locator('#guideLinkURL').inputValue()).searchParams.get('lang'), 'en');
+    await page.reload(); await ready(page);
+    assert.equal(new URL(await page.locator('#guideLinkURL').inputValue()).searchParams.get('lang'), 'en');
+    await keyboard(page, 'skipButton'); await page.waitForURL(/citronex-ryczywol-szkolenie/);
+    await page.goBack(); await ready(page);
+    assert.equal(new URL(await page.locator('#guideLinkURL').inputValue()).searchParams.get('lang'), 'en');
+    assert.equal(await page.locator('audio').getAttribute('src'), null);
+    report.results.push({ scenario: 'public guide copy; clipboard fixture only; sanitized URL; manual selection; stale completion; language/reload/Back; no audio', width, outcome, pass: true });
+  }
   oldVersion = true;
   const { ctx, page } = await context(320);
   await page.goto(`${base}?location=ryczywol&lang=ua&welcome=1`); await ready(page); await controlled(page);
