@@ -52,3 +52,15 @@ return/clear, URL privacy/progress, keyboard/reload/Back/offline/no audio. Exist
 upgrade and all audio/public-copy cases retained. No workflow/dependency changes.
 Current exact head/base/hash/CI handoff is the single PR description; independent
 role2 acceptance and role10 release remain separate. No new native-review claim.
+
+## First exact CI finding / correction
+
+CI39077476347 at2ad7fbf:218/218 unit,18 completed browser cases, then ka1280
+storage-denied return assertion failed (guide.mjs332). After actual reload with
+storage denied, current URL still names a site, but in-memory last was empty.
+The strict assertion is retained. Generic choice now captures the valid departing
+current URL location as last, attempts optional storage and discloses memory-only
+status when denied. No persistence across reload is promised under denial.
+Twelve new regressions (all12 languages): first-head0/12 -> changed12/12.
+Full local230:229 pass, unchanged PNG ENOENT only. Next CI must be exact new head;
+no blind rerun. Actual previous failure/evidence remains historical.

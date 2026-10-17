@@ -772,3 +772,12 @@ for (const reject of [false, true]) test(`clear invalidates late audio ${reject 
  assert.equal(c.node('audioStatus').textContent,status);
  assert.equal(c.node('pauseButton').hidden,true);assert.equal(c.redirects.length,0);
 });
+for (const lang of allLocationLangs) test(`${lang}: generic choice remembers departed URL location even after denied-storage reload`, () => {
+ const c=boot(`lang=${lang}&location=ryczywol&welcome=1`,{blocked:true});
+ assert.equal(c.node('lastLocationPanel').hidden,true);
+ c.node('locationSelect').value='';c.node('locationSelect').emit('change');
+ assert.equal(c.node('lastLocationPanel').hidden,false);
+ assert.ok(c.node('locationChoiceStatus').textContent.length>10);
+ c.node('returnLocation').emit('click');assert.equal(c.node('locationSelect').value,'ryczywol');
+ assert.equal(c.redirects.length,0);assert.equal(c.node('guideAudio').loads||0,0);
+});

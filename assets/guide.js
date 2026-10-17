@@ -799,6 +799,7 @@
   }
   function selectLocation(selected, clearLast = false) {
     if (selected && !Object.hasOwn(TARGETS, selected)) return;
+    const departedLocation = hasLocation ? locationKey : '';
     locationKey = selected || null;
     hasLocation = Boolean(selected);
     genericGuide = !selected;
@@ -809,6 +810,9 @@
     } else if (selected) {
       lastLocationChoice = selected;
       locationMemoryOnly = !savePreference('cxDragonGuide:location', selected);
+    } else if (departedLocation) {
+      lastLocationChoice = departedLocation;
+      locationMemoryOnly = !savePreference('cxDragonGuide:location', departedLocation);
     }
     try {
       const current = new URL(window.location.href);
