@@ -387,6 +387,45 @@ try {
     await offline(ctx,false);
     report.results.push({scenario:'old9 unified choice/return/clear,3 sites,public URL privacy,keyboard,progress,reload/Back/offline,no audio',width,selected,pass:true});
   }
+  for (const width of [1280, 320]) for (const [selected, site] of [['ka','zgorzelec_bogatynia'],['hy','']]) {
+    const { ctx, page } = await context(width);
+    await page.goto(`${base}?lang=${selected}${site ? '&location='+site : ''}&welcome=1&token=private-memo-secret&progress=99#private-progress`);
+    await ready(page);await controlled(page);
+    assert.equal(await page.locator('#manualMemo').isVisible(),false);
+    assert.equal(await page.locator('audio').getAttribute('src'),null);
+    const expectedName=`primserv-guide-${selected}-${site || 'generic'}.txt`;
+    const actualDownload=async suffix=>{
+      const event=page.waitForEvent('download');await keyboard(page,'downloadMemo');const item=await event;
+      assert.equal(item.suggestedFilename(),expectedName);assert.equal(await item.failure(),null);
+      const filename=`memo-${selected}-${site || 'generic'}-${width}-${suffix}.txt`;
+      await item.saveAs(join(reportDir,filename));const bytes=await readFile(join(reportDir,filename));const text=bytes.toString('utf8');
+      assert.equal(text,await page.locator('#memoText').inputValue());
+      assert.ok(text.includes(await page.locator('#speechText').innerText()));
+      for(const bad of ['private-memo-secret','token=','progress=','#private-progress','cxDragonGuide:'])assert.equal(text.includes(bad),false,bad);
+      const urls=text.match(/https:\/\/[^\s]+/g);assert.equal(urls.length,2);
+      const guide=new URL(urls[0]);assert.equal(guide.pathname,'/citronex-dragon-guide/');assert.equal(guide.searchParams.get('lang'),selected);assert.equal(guide.searchParams.get('location'),site || null);
+      assert.equal(guide.hash,'');assert.deepEqual([...new URL(urls[1]).searchParams.keys()],['lang']);
+      report.downloads ||= [];report.downloads.push({filename,bytes:bytes.length,sha256:sha256(bytes),language:selected,site:site || 'generic',mode:suffix});
+      return text;
+    };
+    const online=await actualDownload('online');
+    await offline(ctx,true);await page.reload();await ready(page);
+    assert.equal(await page.evaluate(()=>navigator.onLine),false);
+    assert.equal(await actualDownload('offline'),online);
+    await page.evaluate(()=>{Object.defineProperty(URL,'createObjectURL',{configurable:true,value:()=>{throw new DOMException('Download denied fixture','SecurityError');}});});
+    await keyboard(page,'downloadMemo');await page.locator('#manualMemo').waitFor({state:'visible'});
+    assert.equal(await page.locator('#memoText').inputValue(),online);
+    assert.equal(await page.locator('#memoText').getAttribute('readonly'),'');
+    assert.equal(await page.evaluate(()=>document.activeElement.id),'memoText');
+    assert.equal(await page.locator('#memoText').evaluate(n=>n.selectionEnd-n.selectionStart),online.length);
+    assert.ok((await page.locator('#memoStatus').innerText()).length>20);
+    assert.equal(await page.locator('audio').getAttribute('src'),null);
+    await shot(page,`memo-manual-${selected}-${width}`);
+    await page.locator('#languageSelect').selectOption('en');
+    assert.equal(await page.locator('#manualMemo').isVisible(),false);assert.equal(await page.locator('#memoText').inputValue(),'');
+    await offline(ctx,false);
+    report.results.push({scenario:'real UTF8 browser download online/offline; selected and generic public memo; denied API fixture readonly manual; keyboard/no audio',width,selected,site:site || 'generic',pass:true});
+  }
   oldVersion = true;
   const { ctx, page } = await context(320);
   representativeContext = ctx;
@@ -440,7 +479,12 @@ try {
     const c = await caches.open(headCache);
     const rows = []; for (const req of await c.keys()) { const res = await c.match(req); rows.push({ url: req.url, bytes: (await res.arrayBuffer()).byteLength }); } return rows;
   }, headCache);
-  report.cacheUpgrade = { upgradeBase: report.upgradeBase, baseCache, headCache, offlineScriptHash, offlineHeadTurkishText: true };
+  await page.evaluate(()=>{Object.defineProperty(URL,'createObjectURL',{configurable:true,value:undefined});});
+  await keyboard(page,'downloadMemo');
+  assert.equal(await page.locator('#manualMemo').isVisible(),true);
+  assert.ok((await page.locator('#memoText').inputValue()).includes(await page.locator('#speechText').innerText()));
+  assert.equal(await page.locator('#memoText').getAttribute('readonly'),'');
+  report.cacheUpgrade = { upgradeBase: report.upgradeBase, baseCache, headCache, offlineScriptHash, offlineHeadTurkishText: true, offlineMemoManual: true };
   await shot(page, 'cache-upgrade-offline');
   report.results.push({ scenario: 'actual base SW → head SW; old cache deleted; preserved language/seen/unrelated; offline HEAD tr text and JS hash', pass: true });
   assert.deepEqual(report.errors, []);

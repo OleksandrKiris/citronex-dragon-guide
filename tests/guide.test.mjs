@@ -9,6 +9,7 @@ const locales = ["pl", "en", "ua", "ru", "az", "es", "fil", "id", "ne"];
 const targets = { siechnice: "citronex-siechnice-szkolenie", ryczywol: "citronex-ryczywol-szkolenie", zgorzelec_bogatynia: "citronex-zgorzelec-bogatynia-szkolenie" };
 
 function boot(query = "location=siechnice&lang=pl&welcome=1", options = {}) {
+  const blobs = [], downloads = [], revoked = [], windowHandlers = new Map();
   const nodes = new Map(), timers = [], redirects = [], reads = [], utterances = [], playRequests = [], storage = new Map(Object.entries(options.storage || {}));
   function node(id) {
     if (!nodes.has(id)) {
@@ -41,19 +42,25 @@ function boot(query = "location=siechnice&lang=pl&welcome=1", options = {}) {
   background[3].inert = true; // Preserve a pre-existing inert section when the gate closes.
   const document = { getElementById: node, documentElement: { lang: "" }, body: { classList: { add() {} } },
     querySelectorAll: selector => selector === "[data-hydra-link]" ? links : selector === ".page-shell > :not(#languageGate)" ? background : [] };
-  const window = { location, localStorage, setTimeout(fn, ms) { timers.push({ fn, ms }); return timers.length; }, addEventListener() {} };
+  const window = { location, localStorage, setTimeout(fn, ms) { timers.push({ fn, ms }); return timers.length; }, addEventListener(key, fn) { windowHandlers.set(key, fn); } };
   if (options.speech) window.speechSynthesis = {
     getVoices: () => options.deferVoice ? [] : ["pl-PL", "en-US", "uk-UA", "ru-RU", "az-AZ", "es-ES", "fil-PH", "id-ID", "ne-NP"].map(lang => ({ lang })),
     cancel() { this.cancelCount = (this.cancelCount || 0) + 1; },
     speak(utterance) { utterances.push(utterance); },
     pause() { this.paused = true; }, resume() { this.paused = false; }
   };
-  const context = vm.createContext({ window, document, localStorage, URL, URLSearchParams, history: { state: null, replaceState(_a, _b, value) { if (options.blockedHistory) throw Error("History blocked"); location.href = String(value); location.search = new URL(value).search; } },
+  document.createElement = () => ({ ...(options.downloadUnavailable ? {} : { download: '' }), href: '', remove() { this.removed = true; }, click() { if (options.downloadDenied) throw Error('Download denied'); downloads.push({ filename: this.download, url: this.href }); } });
+  document.body.appendChild = () => {};
+  class TestURL extends URL {
+    static createObjectURL(blob) { if (options.objectURLDenied) throw Error('Object URL denied'); blobs.push(blob); return 'blob:test-' + blobs.length; }
+    static revokeObjectURL(url) { revoked.push(url); }
+  }
+  const context = vm.createContext({ window, document, localStorage, URL: TestURL, Blob, URLSearchParams, history: { state: null, replaceState(_a, _b, value) { if (options.blockedHistory) throw Error("History blocked"); location.href = String(value); location.search = new URL(value).search; } },
     navigator: { clipboard: options.clipboard, language: options.browserLanguage || "pl", languages: [options.browserLanguage || "pl"] }, clearTimeout(id) { if (timers[id - 1]) timers[id - 1].cancelled = true; }, console,
     SpeechSynthesisUtterance: function(text) { this.text = text; },
     fetch() { throw Error("Network and candidate operations forbidden"); } });
   vm.runInContext(source, context);
-  return { node, links, background, gateButtons, location, document, timers, redirects, storage, reads, utterances, playRequests, synth: window.speechSynthesis, choose(lang) { node("languageSelect").value = lang; node("languageSelect").emit("change"); } };
+  return { node, links, background, gateButtons, blobs, downloads, revoked, pagehide() { windowHandlers.get("pagehide")?.(); }, location, document, timers, redirects, storage, reads, utterances, playRequests, synth: window.speechSynthesis, choose(lang) { node("languageSelect").value = lang; node("languageSelect").emit("change"); } };
 }
 
 test("first-entry language gate contains keyboard focus and isolates the background", () => {
@@ -542,7 +549,7 @@ test("real HTML exposes the fallback note and all return links; changed CSS/JS h
   assert.ok(html.includes('id="languageFallback" class="language-fallback" role="status" hidden'));
   assert.equal((html.match(/data-hydra-link/g) || []).length, 3);
   for (const path of ["assets/guide.js", "assets/guide.css"]) {
-    const version = path.endsWith(".js") ? "20261018-location-path1" : "20261016-primserv-guide1";
+    const version = path.endsWith(".js") ? "20261018-memo1" : "20261016-primserv-guide1";
     assert.ok(html.includes(`${path}?v=${version}`));
     assert.ok(sw.includes(`${path}?v=${version}`));
   }
@@ -780,4 +787,65 @@ for (const lang of allLocationLangs) test(`${lang}: generic choice remembers dep
  assert.ok(c.node('locationChoiceStatus').textContent.length>10);
  c.node('returnLocation').emit('click');assert.equal(c.node('locationSelect').value,'ryczywol');
  assert.equal(c.redirects.length,0);assert.equal(c.node('guideAudio').loads||0,0);
+});
+
+for (const lang of allLocationLangs) for (const site of ['', ...Object.keys(targets)]) test(`${lang}/${site || 'generic'}: UTF8 memo exports only current public guide text and clean routes`, async () => {
+ const seen='cxDragonGuide:ryczywol:seen:20260717-location-copy';
+ const c=boot(`lang=${lang}${site?'&location='+site:''}&welcome=1&token=secret-candidate&progress=99`,{storage:{[seen]:'1',unrelated:'keep'},speech:true});
+ c.location.href=c.location.href.replace('#guideApp','#private-progress');
+ assert.equal(c.blobs.length,0);c.node('downloadMemo').emit('click');
+ assert.equal(c.blobs.length,1);assert.equal(c.downloads.length,1);
+ assert.equal(c.downloads[0].filename,`primserv-guide-${lang}-${site || 'generic'}.txt`);
+ const text=await c.blobs[0].text();assert.equal(text,c.node('memoText').value);
+ assert.equal(c.blobs[0].type,'text/plain;charset=utf-8');
+ assert.ok(text.includes(c.node('speechText').textContent));assert.ok(text.includes(c.node('guideTitle').textContent));
+ for(const forbidden of ['secret-candidate','progress=','token=','#private-progress','cxDragonGuide:'])assert.equal(text.includes(forbidden),false,forbidden);
+ const urls=text.match(/https:\/\/[^\s]+/g);assert.equal(urls.length,2);
+ const guide=new URL(urls[0]),destination=new URL(urls[1]);
+ assert.equal(guide.origin+guide.pathname,'https://oleksandrkiris.github.io/citronex-dragon-guide/');
+ assert.equal(guide.searchParams.get('lang'),lang);assert.equal(guide.searchParams.get('location'),site || null);assert.equal(guide.hash,'');
+ assert.deepEqual([...destination.searchParams.keys()],['lang']);assert.equal(destination.searchParams.get('lang'),lang);
+ assert.equal(destination.pathname,site?'/'+targets[site]+'/':'/citronex-hydra-project/');
+ assert.equal(c.node('manualMemo').hidden,false);assert.ok(c.node('memoTextLabel').textContent.length>8);
+ if(lang==='en')assert.equal(c.node('memoStatus').textContent,'Download requested. If no file appears, save the text below manually.');
+ assert.equal(c.storage.get(seen),'1');assert.equal(c.storage.get('unrelated'),'keep');
+ assert.equal(c.utterances.length,0);assert.equal(c.node('guideAudio').loads||0,0);assert.equal(c.redirects.length,0);
+ if(['ka','tr','hy'].includes(lang)){assert.ok(text.includes(c.node('audioLanguageNotice').textContent));assert.ok(text.includes(c.node('targetLanguageNotice').textContent));}
+});
+for (const lang of allLocationLangs) test(`${lang}: unavailable download exposes labelled selectable public text without saved claim`,()=>{
+ const c=boot(`lang=${lang}&location=ryczywol`,{downloadUnavailable:true});c.node('downloadMemo').emit('click');
+ assert.equal(c.downloads.length,0);assert.equal(c.blobs.length,0);assert.equal(c.node('manualMemo').hidden,false);
+ assert.equal(c.document.activeElement,c.node('memoText'));assert.equal(c.node('memoText').selected,true);
+ assert.ok(c.node('memoStatus').textContent.length>10);assert.ok(c.node('memoTextLabel').textContent.length>8);
+ if(lang==='en')assert.equal(c.node('memoStatus').textContent,'Download is unavailable. Save the text below manually.');
+});
+for (const options of [{downloadDenied:true},{objectURLDenied:true}]) test('download API refusal uses manual text and revokes any allocated URL',()=>{
+ const c=boot('lang=en&location=siechnice',options);c.node('downloadMemo').emit('click');
+ assert.equal(c.downloads.length,0);assert.equal(c.node('manualMemo').hidden,false);
+ assert.equal(c.node('memoStatus').textContent,'Download is unavailable. Save the text below manually.');
+ assert.equal(c.revoked.length,options.downloadDenied?1:0);
+});
+for(const alias of ['ua','uk'])test(`${alias}: memo filename and public links use canonical existing ua`,async()=>{
+ const c=boot(`lang=${alias}&location=ryczywol`);c.node('downloadMemo').emit('click');
+ assert.equal(c.downloads[0].filename,'primserv-guide-ua-ryczywol.txt');assert.match(await c.blobs[0].text(),/lang=ua/);
+});
+test('invalid memo site is disabled and cannot create a file or private fallback',()=>{
+ const c=boot('lang=tr&location=https://evil.invalid/?secret=private');
+ assert.equal(c.node('downloadMemo').disabled,true);c.node('downloadMemo').emit('click');
+ assert.equal(c.downloads.length,0);assert.equal(c.blobs.length,0);assert.equal(c.node('manualMemo').hidden,true);
+ c.node('locationSelect').value='siechnice';c.node('locationSelect').emit('change');
+ assert.equal(c.node('downloadMemo').disabled,false);
+});
+for(const action of ['language','location','clear','pagehide'])test(`${action}: memo object URL and stale readonly content are cleared`,()=>{
+ const c=boot('lang=tr&location=ryczywol');c.node('downloadMemo').emit('click');assert.equal(c.revoked.length,0);
+ if(action==='language')c.choose('en');else if(action==='location'){c.node('locationSelect').value='siechnice';c.node('locationSelect').emit('change');}
+ else if(action==='clear')c.node('clearLocation').emit('click');else c.pagehide();
+ assert.deepEqual(c.revoked,['blob:test-1']);
+ if(action!=='pagehide'){assert.equal(c.node('memoText').value,'');assert.equal(c.node('manualMemo').hidden,true);assert.equal(c.node('memoStatus').textContent,'');}
+});
+test('memo timeout revokes its own URL; obsolete timer cannot revoke a newer download',()=>{
+ const c=boot('lang=en');c.node('downloadMemo').emit('click');const old=c.timers.find(t=>t.ms===1000);
+ c.node('downloadMemo').emit('click');assert.deepEqual(c.revoked,['blob:test-1']);old.fn();assert.deepEqual(c.revoked,['blob:test-1']);
+ c.timers.filter(t=>t.ms===1000).at(-1).fn();assert.deepEqual(c.revoked,['blob:test-1','blob:test-2']);
+ assert.equal(c.redirects.length,0);
 });

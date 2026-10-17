@@ -157,6 +157,12 @@
           <label id="guideLinkLabel" for="guideLinkURL">Link do przewodnika</label>
           <input id="guideLinkURL" type="text" readonly spellcheck="false" dir="ltr" style="width:100%;box-sizing:border-box;min-width:0">
         </div>
+        <button id="downloadMemo" class="action-button action-secondary" type="button">Pobierz notatkę (.txt)</button>
+        <p id="memoStatus" class="audio-status" role="status" aria-live="polite"></p>
+        <div id="manualMemo" hidden>
+          <label id="memoTextLabel" for="memoText">Tekst notatki do ręcznego zapisania</label>
+          <textarea id="memoText" readonly rows="10" spellcheck="false" style="width:100%;box-sizing:border-box;min-width:0"></textarea>
+        </div>
         <p id="audioStatus" class="audio-status" role="status">Wybierz j&#281;zyk.</p>
         <audio id="guideAudio" preload="none"></audio>
       </section>
@@ -194,6 +200,6 @@
 
     <footer class="footer-note">PrimServ &middot; HYDRA</footer>
   </div>
-  <script src="assets/guide.js?v=20261018-location-path1" defer></script>
+  <script src="assets/guide.js?v=20261018-memo1" defer></script>
 </body>
 </html>
