@@ -1,6 +1,7 @@
 // User-authorized GitHub Actions acceptance; never launch a local substitute browser.
 import assert from 'node:assert/strict';
 import { headUpgradeReady } from './cache-upgrade-gate.mjs';
+import { workerCacheName, selectUpgradeBase, finishEvidence } from './evidence-retention.mjs';
 import { createRequire } from 'node:module';
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
@@ -26,28 +27,28 @@ const files = ['index.html', 'assets/guide.js', 'assets/guide.css', 'sw.js',
   'manifest.webmanifest', 'assets/brand/primserv-logo.svg', 'assets/brand/primserv-icon-192.png',
   'assets/audio/intro-en.mp3'];
 const current = new Map(), previous = new Map();
-for (const file of files) {
-  const bytes = await readFile(file);
-  assert.equal(sha256(bytes), sha256(git('show', `${report.head}:${file}`)), `Exact head: ${file}`);
-  current.set(file, bytes);
-  previous.set(file, git('show', `${report.base}:${file}`));
-  report.files[file] = { bytes: bytes.length, sha256: sha256(bytes) };
+let baseCache, headCache;
+async function loadExactFiles() {
+  headCache = workerCacheName(git('show', `${report.head}:sw.js`));
+  const ancestors = git('rev-list', '--first-parent', report.base).toString().trim().split('\n');
+  report.upgradeBase = selectUpgradeBase(ancestors, sha => git('show', `${sha}:sw.js`), headCache);
+  for (const file of files) {
+    const bytes = await readFile(file);
+    assert.equal(sha256(bytes), sha256(git('show', `${report.head}:${file}`)), `Exact head: ${file}`);
+    current.set(file, bytes);
+    previous.set(file, git('show', `${report.upgradeBase}:${file}`));
+    report.files[file] = { bytes: bytes.length, sha256: sha256(bytes) };
+  }
+  baseCache = workerCacheName(previous.get('sw.js'));
+  assert.notEqual(baseCache, headCache, 'This acceptance requires a real SW upgrade');
 }
-const cacheName = bytes => {
-  const match = bytes.toString().match(/const CACHE_NAME = CACHE_PREFIX \+ "([^"]+)"/);
-  assert.ok(match, 'Versioned guide cache must be explicit');
-  return 'citronex-dragon-guide-' + match[1];
-};
-const baseCache = cacheName(previous.get('sw.js'));
-const headCache = cacheName(current.get('sw.js'));
-assert.notEqual(baseCache, headCache, 'This acceptance requires a real SW upgrade');
 let oldVersion = false;
 const prefix = '/citronex-dragon-guide/';
 const types = { html: 'text/html', js: 'application/javascript', css: 'text/css',
   svg: 'image/svg+xml', png: 'image/png', mp3: 'audio/mpeg', webmanifest: 'application/manifest+json' };
 const server = createServer((req, res) => {
   const url = new URL(req.url, 'http://localhost');
-  report.requests.push({ path: url.pathname, method: req.method, version: oldVersion ? 'base' : 'head' });
+  report.requests.push({ path: url.pathname, method: req.method, version: oldVersion ? 'upgrade-base' : 'head' });
   if (!['GET', 'HEAD'].includes(req.method) || !url.pathname.startsWith(prefix)) {
     res.writeHead(404).end(); return;
   }
@@ -73,11 +74,12 @@ async function offline(ctx, value) {
     await new Promise(resolve => server.listen(port, '127.0.0.1', resolve));
   }
 }
-let browser, activePage;
+let browser, activePage, activeContext, representativeContext;
 const contexts = [];
 async function context(width, storage = '') {
   const ctx = await browser.newContext({ viewport: { width, height: 900 }, locale: 'en-US' });
   contexts.push(ctx);
+  activeContext = ctx;
   ctx.setDefaultTimeout(12000);
   await ctx.tracing.start({ screenshots: true, snapshots: true });
   await ctx.route('**/*', route => {
@@ -130,6 +132,7 @@ async function failed(page) {
   assert.ok((await page.locator('#speechText').innerText()).length > 30);
 }
 try {
+  await loadExactFiles();
   browser = await chromium.launch({ headless: true });
   report.browser = `Chromium ${browser.version()} / Playwright 1.56.1`;
   for (const width of [1280, 320]) {
@@ -386,6 +389,7 @@ try {
   }
   oldVersion = true;
   const { ctx, page } = await context(320);
+  representativeContext = ctx;
   await page.goto(`${base}?location=ryczywol&lang=ua&welcome=1`); await ready(page); await controlled(page);
   await keyboard(page, 'skipButton'); await page.waitForURL(/citronex-ryczywol-szkolenie/);
   await page.goBack(); await ready(page);
@@ -436,7 +440,7 @@ try {
     const c = await caches.open(headCache);
     const rows = []; for (const req of await c.keys()) { const res = await c.match(req); rows.push({ url: req.url, bytes: (await res.arrayBuffer()).byteLength }); } return rows;
   }, headCache);
-  report.cacheUpgrade = { baseCache, headCache, offlineScriptHash, offlineHeadTurkishText: true };
+  report.cacheUpgrade = { upgradeBase: report.upgradeBase, baseCache, headCache, offlineScriptHash, offlineHeadTurkishText: true };
   await shot(page, 'cache-upgrade-offline');
   report.results.push({ scenario: 'actual base SW → head SW; old cache deleted; preserved language/seen/unrelated; offline HEAD tr text and JS hash', pass: true });
   assert.deepEqual(report.errors, []);
@@ -444,12 +448,15 @@ try {
   report.pass = true;
 } catch (err) {
   report.pass = false; report.failure = err.stack; process.exitCode = 1;
-  if (activePage) await activePage.screenshot({ path: join(reportDir, 'failure.png'), fullPage: true }).catch(() => {});
+  if (activePage) await activePage.screenshot({ path: join(reportDir, 'failure.png'), fullPage: true }).catch(error => { report.failureScreenshotError = error.stack; });
 } finally {
-  for (const [i, ctx] of contexts.entries()) await ctx.tracing.stop({ path: join(reportDir, `trace-${i}.zip`) }).catch(() => {});
-  await browser?.close();
-  await new Promise(resolve => server.close(resolve));
-  report.finished = new Date().toISOString();
-  await writeFile(join(reportDir, 'acceptance.json'), JSON.stringify(report, null, 2));
-  console.log(JSON.stringify({ pass: report.pass, results: report.results, failure: report.failure, head: report.head }));
+  const result = await finishEvidence({ contexts, activeContext, representativeContext, reportDir, report,
+    closeBrowser: () => browser?.close(),
+    closeServer: () => new Promise((resolve, reject) => server.listening ? server.close(error => error ? reject(error) : resolve()) : resolve()),
+    writeReport: value => writeFile(join(reportDir, 'acceptance.json'), JSON.stringify(value, null, 2))
+  });
+  if (!report.pass) process.exitCode = 1;
+  if (!result.written) console.error(JSON.stringify(report));
+  console.log(JSON.stringify({ pass: report.pass, results: report.results, failure: report.failure,
+    head: report.head, base: report.base, upgradeBase: report.upgradeBase, traceRetention: report.traceRetention }));
 }
