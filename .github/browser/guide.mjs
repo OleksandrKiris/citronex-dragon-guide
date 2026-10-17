@@ -208,7 +208,13 @@ try {
     assert.equal(new URL(page.url()).searchParams.get('lang'), 'en', 'Explicit effective-language handoff');
     await page.goBack(); await ready(page); await honestFallback();
     if (storage === 'corrupt') assert.equal(await page.evaluate(() => localStorage.getItem('unrelated')), 'keep');
+    await page.locator('#languageSelect').selectOption('en');
+    assert.equal(new URL(page.url()).searchParams.get('lang'), 'en');
+    assert.equal(await page.locator('#languageFallback').isVisible(), false);
+    await page.reload(); await ready(page);
+    assert.equal(await page.locator('#languageFallback').isVisible(), false);
     await page.locator('#languageSelect').selectOption('ua');
+    assert.equal(new URL(page.url()).searchParams.get('lang'), 'ua');
     assert.equal(await page.locator('#languageFallback').isVisible(), false);
     assert.equal(await page.locator('html').getAttribute('lang'), 'uk');
     assert.equal(await page.evaluate(() => window.__acceptanceAudioCalls), 0);

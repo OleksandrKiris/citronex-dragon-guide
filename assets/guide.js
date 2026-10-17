@@ -422,7 +422,7 @@
   const validLocation = hasLocation || genericGuide;
   const forceGuide = params.get("welcome") === "1";
   const requestedLang = params.get("lang") || "";
-  const fallbackLanguage = ["ka", "tr", "hy"].includes(requestedLang);
+  let fallbackLanguage = ["ka", "tr", "hy"].includes(requestedLang);
   const normalizedLang = requestedLang === "uk" ? "ua" : fallbackLanguage ? "en" : requestedLang;
   const queryLang = LANGS.includes(normalizedLang) ? normalizedLang : "";
   const savedLang = readSaved("cxDragonGuide:lang");
@@ -474,7 +474,8 @@
   function t() { return TEXT[lang] || TEXT.pl; }
   function setText(id, value) { const node = $(id); if (node) node.textContent = value; }
 
-  function applyLanguage(nextLang) {
+  function applyLanguage(nextLang, manualChoice = false) {
+    if (manualChoice) fallbackLanguage = false;
     stopPlayback();
     lang = LANGS.includes(nextLang) ? nextLang : "en";
     savePreference("cxDragonGuide:lang", lang);
@@ -732,13 +733,13 @@
   audio.addEventListener("ended", () => { if (playbackActive && !speechFallbackActive) completeGuide(); });
   audio.addEventListener("pause", () => { if (!audio.ended && !speechFallbackActive) setSpeaking(false); });
   audio.addEventListener("error", () => { if (playbackActive && !speechFallbackActive) { audioStatus.textContent = t().fallback; speakFallback(); } });
-  languageSelect.addEventListener("change", () => applyLanguage(languageSelect.value));
+  languageSelect.addEventListener("change", () => applyLanguage(languageSelect.value, true));
   startButton.addEventListener("click", startPlayback);
   openButton.addEventListener("click", finishAndOpen);
   pauseButton.addEventListener("click", togglePause);
   replayButton.addEventListener("click", replay);
   skipButton.addEventListener("click", finishAndOpen);
-  languageGate.querySelectorAll("[data-gate-lang]").forEach((button) => button.addEventListener("click", () => { applyLanguage(button.dataset.gateLang); setGateVisible(false); }));
+  languageGate.querySelectorAll("[data-gate-lang]").forEach((button) => button.addEventListener("click", () => { applyLanguage(button.dataset.gateLang, true); setGateVisible(false); }));
 
   if (!validLocation) {
     invalidState.hidden = false;

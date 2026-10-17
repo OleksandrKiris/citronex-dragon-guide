@@ -601,3 +601,18 @@ for (const requested of ["ka", "tr", "hy"]) test(`${requested}: reload retains r
   assert.equal(new URL(reloaded.location.href).searchParams.get("lang"), "ua");
   assert.equal(reloaded.node("languageFallback").hidden, true);
 });
+
+for (const selected of ['en', 'ua']) test(`tr: explicit manual ${selected} replaces requested context and preserves other URL parts`, () => {
+  const c = boot('lang=tr&welcome=1&context=keep&location=ryczywol');
+  assert.equal(new URL(c.location.href).searchParams.get('lang'), 'tr');
+  c.choose(selected);
+  const url = new URL(c.location.href);
+  assert.equal(url.searchParams.get('lang'), selected);
+  assert.equal(url.searchParams.get('context'), 'keep');
+  assert.equal(url.searchParams.get('location'), 'ryczywol');
+  assert.equal(url.hash, '#guideApp');
+  assert.equal(c.node('languageFallback').hidden, true);
+  const reloaded = boot(url.search.slice(1));
+  assert.equal(reloaded.document.documentElement.lang, selected === 'ua' ? 'uk' : 'en');
+  assert.equal(reloaded.node('languageFallback').hidden, true);
+});
