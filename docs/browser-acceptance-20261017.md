@@ -23,7 +23,12 @@ nine UI languages, ka→EN notice, language persistence and offline reload; Back
 from an explicitly intercepted external destination; corrupt/denied storage;
 actual old→new service-worker activation, language/seen/unrelated data retained,
 then offline reload. No media mocks/synthetic error events stand in for the
-network-loss scenario. Only one existing audio file is requested per scenario;
+network-loss scenario. Offline disables browser networking AND stops the actual
+local HTTP listener (restored on the same port for recovery). The first run
+showed that Chromium's offline emulation alone still allowed SW-owned requests;
+that run failed and is not counted as offline evidence. Stopping the origin
+ensures no uncached resource is reachable, without mocking MediaError or audio.
+Only one existing audio file is requested per scenario;
 other languages are UI checks, not claims of listening to all recordings.
 
 First use requires successful HTTP/HTTPS loading. The test proves only cached

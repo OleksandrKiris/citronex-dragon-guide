@@ -51,7 +51,19 @@ const server = createServer((req, res) => {
 });
 await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
 const base = `http://127.0.0.1:${server.address().port}${prefix}`;
+const port = server.address().port;
 report.url = base;
+// Chromium's offline emulation can leave a service-worker-owned fetch online.
+// Also stop the actual HTTP origin: failed media/cache reads cannot reach it.
+async function offline(ctx, value) {
+  await ctx.setOffline(value);
+  if (value && server.listening) {
+    server.closeAllConnections();
+    await new Promise(resolve => server.close(resolve));
+  } else if (!value && !server.listening) {
+    await new Promise(resolve => server.listen(port, '127.0.0.1', resolve));
+  }
+}
 let browser, activePage;
 const contexts = [];
 async function context(width, storage = '') {
@@ -115,7 +127,7 @@ try {
     const { ctx, page } = await context(width);
     await page.goto(`${base}?lang=en&welcome=1`); await ready(page); await controlled(page);
     assert.equal(await page.locator('audio').getAttribute('src'), null, 'No unsolicited media');
-    await ctx.setOffline(true);
+    await offline(ctx, true);
     assert.equal(await page.evaluate(() => navigator.onLine), false);
     await keyboard(page, 'startButton'); await failed(page);
     await shot(page, `offline-error-${width}`);
@@ -124,7 +136,7 @@ try {
     const before = report.requests.filter(r => r.path.endsWith('.mp3')).length;
     await page.waitForTimeout(800);
     assert.equal(report.requests.filter(r => r.path.endsWith('.mp3')).length, before);
-    await ctx.setOffline(false);
+    await offline(ctx, false);
     await keyboard(page, 'startButton'); await playing(page);
     await keyboard(page, 'pauseButton');
     assert.equal(await page.locator('#pauseButton').innerText(), 'Resume');
@@ -140,11 +152,11 @@ try {
       await shot(page, `language-${lang}-${width}`);
     }
     await page.locator('#languageSelect').selectOption('ua');
-    await ctx.setOffline(true); await page.reload(); await ready(page);
+    await offline(ctx, true); await page.reload(); await ready(page);
     assert.equal(await page.locator('#languageSelect').inputValue(), 'ua');
     assert.equal(await page.evaluate(() => navigator.onLine), false);
     await shot(page, `offline-reload-${width}`);
-    await ctx.setOffline(false);
+    await offline(ctx, false);
     await page.goto(`${base}?lang=ka&welcome=1`); await ready(page);
     assert.equal(await page.locator('#languageSelect').inputValue(), 'en');
     assert.match(await page.locator('#languageFallback').innerText(), /English/);
@@ -185,7 +197,7 @@ try {
   assert.equal(await page.evaluate(() => localStorage.getItem('unrelated')), 'keep');
   assert.equal(await page.locator('#languageSelect').inputValue(), 'ua');
   assert.ok((await page.evaluate(() => caches.keys())).includes('unrelated-cache'));
-  await ctx.setOffline(true); await page.reload(); await ready(page);
+  await offline(ctx, true); await page.reload(); await ready(page);
   assert.equal(await page.locator('#languageSelect').inputValue(), 'ua');
   assert.equal(await page.evaluate(key => localStorage.getItem(key), seen), '1');
   report.cache = await page.evaluate(async () => {
