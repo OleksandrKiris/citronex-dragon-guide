@@ -167,13 +167,13 @@ try {
     await shot(page, `offline-reload-${width}`);
     await offline(ctx, false);
     await page.goto(`${base}?lang=ka&welcome=1`); await ready(page);
-    assert.equal(await page.locator('#languageSelect').inputValue(), 'en');
-    assert.match(await page.locator('#languageFallback').innerText(), /English/);
+    assert.equal(await page.locator('#languageSelect').inputValue(), 'ka');
+    assert.equal(await page.locator('#audioLanguageNotice').isVisible(), true);
     await shot(page, `fallback-${width}`);
     await keyboard(page, 'skipButton'); await page.waitForURL(/citronex-hydra-project/);
     await page.goBack(); await ready(page);
-    assert.equal(await page.locator('#languageSelect').inputValue(), 'en');
-    report.results.push({ scenario: 'cold MP3 offline error twice → online Start → pause/resume/replay; nine languages; offline reload; ka fallback; Back', width, pass: true });
+    assert.equal(await page.locator('#languageSelect').inputValue(), 'ka');
+    report.results.push({ scenario: 'cold MP3 offline error twice → online Start → pause/resume/replay; nine languages; offline reload; ka text path; Back', width, pass: true });
   }
   // Explicit unsupported language must beat stored preferences, without executing audio.
   for (const width of [1280, 320]) for (const storage of ['saved-pl', 'corrupt']) {
@@ -190,10 +190,11 @@ try {
       if (window.speechSynthesis) window.speechSynthesis.speak = function () { window.__acceptanceAudioCalls++; };
     }, { saved: storage === 'saved-pl' });
     const honestFallback = async () => {
-      assert.equal(await page.locator('html').getAttribute('lang'), 'en');
-      assert.equal(await page.locator('#languageSelect').inputValue(), 'en');
-      assert.equal(await page.locator('#languageFallback').innerText(), 'Türkçe → English (EN)');
-      assert.equal(await page.locator('#languageFallback').isVisible(), true);
+      assert.equal(await page.locator('html').getAttribute('lang'), 'tr');
+      assert.equal(await page.locator('#languageSelect').inputValue(), 'tr');
+      assert.equal(await page.locator('#audioLanguageNotice').isVisible(), true);
+      assert.match(await page.locator('#audioLanguageNotice').innerText(), /İngilizce/);
+      assert.equal(await page.locator('#languageFallback').isVisible(), false);
       assert.ok((await page.locator('#speechText').innerText()).length > 30);
       assert.equal(await page.locator('audio').getAttribute('src'), null);
       assert.equal(await page.evaluate(() => window.__acceptanceAudioCalls), 0);
@@ -205,7 +206,7 @@ try {
     await shot(page, `tr-${storage}-${width}`);
     await keyboard(page, 'skipButton');
     await page.waitForURL(/citronex-hydra-project/);
-    assert.equal(new URL(page.url()).searchParams.get('lang'), 'en', 'Explicit effective-language handoff');
+    assert.equal(new URL(page.url()).searchParams.get('lang'), 'tr', 'Selected text-language handoff');
     await page.goBack(); await ready(page); await honestFallback();
     if (storage === 'corrupt') assert.equal(await page.evaluate(() => localStorage.getItem('unrelated')), 'keep');
     await page.locator('#languageSelect').selectOption('en');
@@ -219,7 +220,7 @@ try {
     assert.equal(await page.locator('html').getAttribute('lang'), 'uk');
     assert.equal(await page.evaluate(() => window.__acceptanceAudioCalls), 0);
     assert.equal(mediaRequests, 0);
-    report.results.push({ scenario: 'explicit tr → en; visible notice; keyboard handoff; reload/Back; no audio execution/request', width, storage, pass: true });
+    report.results.push({ scenario: 'explicit tr text path; English-audio notice; keyboard handoff; reload/Back; no audio execution/request', width, storage, pass: true });
   }
   for (const storage of ['corrupt', 'denied']) {
     const { page } = await context(320, storage);
@@ -259,16 +260,16 @@ try {
       assert.equal(await page.locator('#manualGuideLink').isVisible(), false);
       assert.equal(new URL(await page.locator('#guideLinkURL').inputValue()).searchParams.get('lang'), 'ua');
     } else if (outcome === 'success') {
-      await page.getByText('Link copied.', { exact: true }).waitFor();
+      await page.getByText('Bağlantı kopyalandı.', { exact: true }).waitFor();
       assert.equal(await page.locator('#manualGuideLink').isVisible(), false);
     } else {
       await page.locator('#manualGuideLink').waitFor({ state: 'visible' });
       assert.equal(await page.locator('#guideLinkURL').inputValue(), expected);
       assert.equal(await page.locator('#guideLinkURL').getAttribute('readonly'), '');
-      assert.equal(await page.getByLabel('Guide link', { exact: true }).count(), 1);
+      assert.equal(await page.getByLabel('Rehber bağlantısı', { exact: true }).count(), 1);
       assert.equal(await page.evaluate(() => document.activeElement.id), 'guideLinkURL');
       assert.equal(await page.locator('#guideLinkURL').evaluate(n => n.selectionEnd - n.selectionStart), expected.length);
-      assert.equal(await page.locator('#copyGuideStatus').innerText(), 'Copy the link below manually.');
+      assert.equal(await page.locator('#copyGuideStatus').innerText(), 'Aşağıdaki bağlantıyı elle kopyalayın.');
     }
     await shot(page, `copy-${outcome}-${width}`);
     await page.locator('#languageSelect').selectOption('en');
@@ -282,6 +283,53 @@ try {
     assert.equal(new URL(await page.locator('#guideLinkURL').inputValue()).searchParams.get('lang'), 'en');
     assert.equal(await page.locator('audio').getAttribute('src'), null);
     report.results.push({ scenario: 'public guide copy; clipboard fixture only; sanitized URL; manual selection; stale completion; language/reload/Back; no audio', width, outcome, pass: true });
+  }
+  for (const width of [1280, 320]) for (const selected of ['ka', 'tr', 'hy']) for (const storage of ['clean', 'corrupt', 'denied']) {
+    const { ctx, page } = await context(width, storage === 'clean' ? '' : storage);
+    await ctx.addInitScript(() => {
+      window.__textAudioCalls = 0;
+      HTMLMediaElement.prototype.play = function () { window.__textAudioCalls++; return Promise.reject(Error('Explicit EN audio rejected by fixture')); };
+      if (window.speechSynthesis) window.speechSynthesis.speak = function () { throw Error('New-language TTS forbidden'); };
+      Object.defineProperty(navigator, 'clipboard', { value: { writeText: value => { window.__textCopied = value; return Promise.resolve(); } }, configurable: true });
+    });
+    await page.goto(`${base}?welcome=1`); await ready(page);
+    await keyboard(page, `gate-${selected}`);
+    assert.equal(await page.locator('html').getAttribute('lang'), selected);
+    assert.equal(await page.locator('#textPathControls').isVisible(), true);
+    for (const id of ['speechText','textStep1','textStep2','textStep3','audioLanguageNotice','targetLanguageNotice']) assert.ok((await page.locator('#'+id).innerText()).length > 10, id);
+    assert.equal(await page.locator('audio').getAttribute('src'), null);
+    assert.equal(await page.evaluate(() => window.__textAudioCalls), 0);
+    for (const location of ['siechnice','ryczywol','zgorzelec_bogatynia']) {
+      await page.locator('#locationSelect').selectOption(location);
+      assert.equal(new URL(page.url()).searchParams.get('location'), location);
+      assert.ok((await page.locator('#speechText').innerText()).length > 100);
+      await keyboard(page, 'copyGuideLink');
+      const copied = new URL(await page.evaluate(() => window.__textCopied));
+      assert.equal(copied.searchParams.get('lang'), selected);
+      assert.equal(copied.searchParams.get('location'), location);
+      await page.reload(); await ready(page);
+      assert.equal(await page.locator('#locationSelect').inputValue(), location);
+    }
+    await shot(page, `text-${selected}-${storage}-${width}`);
+    await keyboard(page, 'startButton');
+    await page.waitForFunction(() => window.__textAudioCalls === 1);
+    assert.match(await page.locator('audio').getAttribute('src'), /intro-en\.mp3/);
+    await page.locator('#openButton').waitFor({ state: 'visible' });
+    const status = await page.locator('#audioStatus').innerText();
+    assert.ok(status.length > 15);
+    await keyboard(page, 'openButton'); await page.waitForURL(/citronex-zgorzelec-bogatynia-szkolenie/);
+    assert.equal(new URL(page.url()).searchParams.get('lang'), selected);
+    await page.goBack(); await ready(page);
+    assert.equal(await page.locator('#languageSelect').inputValue(), selected);
+    await controlled(page); await offline(ctx, true); await page.reload(); await ready(page);
+    assert.equal(await page.locator('html').getAttribute('lang'), selected);
+    assert.equal(await page.locator('#locationSelect').inputValue(), 'zgorzelec_bogatynia');
+    assert.equal(await page.evaluate(() => navigator.onLine), false);
+    assert.equal(await page.locator('audio').getAttribute('src'), null);
+    if (storage === 'corrupt') assert.equal(await page.evaluate(() => localStorage.getItem('unrelated')), 'keep');
+    await shot(page, `text-offline-${selected}-${storage}-${width}`);
+    await offline(ctx, false);
+    report.results.push({ scenario: 'ka/tr/hy text path: keyboard language, three locations, copy, reload/Back, blocked/corrupt storage, offline, explicit English audio failure fixture/no TTS', width, selected, storage, pass: true });
   }
   oldVersion = true;
   const { ctx, page } = await context(320);
@@ -316,9 +364,9 @@ try {
   await page.goto(`${base}?lang=tr&welcome=1`); await ready(page); await controlled(page);
   await page.reload(); await ready(page);
   assert.equal(await page.evaluate(() => navigator.onLine), false);
-  assert.equal(await page.locator('html').getAttribute('lang'), 'en');
-  assert.equal(await page.locator('#languageFallback').innerText(), 'Türkçe → English (EN)');
-  assert.equal(await page.locator('#languageFallback').isVisible(), true);
+  assert.equal(await page.locator('html').getAttribute('lang'), 'tr');
+  assert.equal(await page.locator('#audioLanguageNotice').isVisible(), true);
+  assert.match(await page.locator('#audioLanguageNotice').innerText(), /İngilizce/);
   assert.equal(await page.locator('audio').getAttribute('src'), null);
   assert.equal(await page.evaluate(key => localStorage.getItem(key), seen), '1');
   assert.equal(await page.evaluate(() => localStorage.getItem('unrelated')), 'keep');
@@ -335,9 +383,9 @@ try {
     const c = await caches.open(headCache);
     const rows = []; for (const req of await c.keys()) { const res = await c.match(req); rows.push({ url: req.url, bytes: (await res.arrayBuffer()).byteLength }); } return rows;
   }, headCache);
-  report.cacheUpgrade = { baseCache, headCache, offlineScriptHash, offlineHeadTurkishNotice: true };
+  report.cacheUpgrade = { baseCache, headCache, offlineScriptHash, offlineHeadTurkishText: true };
   await shot(page, 'cache-upgrade-offline');
-  report.results.push({ scenario: 'actual base SW → head SW; old cache deleted; preserved language/seen/unrelated; offline HEAD tr notice and JS hash', pass: true });
+  report.results.push({ scenario: 'actual base SW → head SW; old cache deleted; preserved language/seen/unrelated; offline HEAD tr text and JS hash', pass: true });
   assert.deepEqual(report.errors, []);
   assert.ok(report.blocked.every(r => ['GET', 'HEAD'].includes(r.method)), 'No submissions');
   report.pass = true;

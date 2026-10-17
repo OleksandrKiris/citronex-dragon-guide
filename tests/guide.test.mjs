@@ -33,7 +33,7 @@ function boot(query = "location=siechnice&lang=pl&welcome=1", options = {}) {
   };
   const links = ["brand", "returnLink", "invalidReturn"].map(node);
   node("languageLabel").textContent = "Wybierz język";
-  const gateButtons = locales.map(lang => { const button = node("gate-" + lang); button.dataset = { gateLang: lang }; return button; });
+  const gateButtons = [...locales.slice(0, -1), "ka", "tr", "hy", locales.at(-1)].map(lang => { const button = node("gate-" + lang); button.dataset = { gateLang: lang }; return button; });
   node("languageGate").querySelectorAll = () => gateButtons;
   node("languageGate").querySelector = selector => gateButtons.find(button => selector === `[data-gate-lang="${button.dataset.gateLang}"]`) || gateButtons[0];
   const background = ["topbar", "serviceNav", "guideApp", "footer"].map(node);
@@ -390,7 +390,7 @@ test("an initial media failure can be retried with the still-visible start butto
   c.playRequests[0].reject(Error("unsupported until load"));
   await Promise.resolve(); await Promise.resolve();
   assert.equal(c.node("startButton").hidden, false);
-  assert.equal(c.node("languageFallback").hidden, false);
+  assert.equal(c.node("audioLanguageNotice").hidden, false);
   options.deferAudio = false;
   c.node("startButton").emit("click");
   await Promise.resolve();
@@ -440,11 +440,12 @@ for (const lang of locales) test(`${lang}: PrimServ services preserve supported 
   assert.equal(c.node("guideAudio").loads, undefined, "Service navigation does not preload audio");
 });
 
-test("Georgian fallback is visible and service navigation follows the displayed English", () => {
+test("Georgian text path keeps service navigation Georgian with an English-audio notice", () => {
   const c = boot("location=siechnice&lang=ka&welcome=1");
-  assert.equal(c.node("languageFallback").hidden, false);
-  assert.match(c.node("languageFallback").textContent, /English \(EN\)/);
-  assert.equal(new URL(c.node("jobsLink").href).searchParams.get("lang"), "en");
+  assert.equal(c.node("languageFallback").hidden, true);
+  assert.equal(c.node("audioLanguageNotice").hidden, false);
+  assert.equal(c.document.documentElement.lang, "ka");
+  assert.equal(new URL(c.node("jobsLink").href).searchParams.get("lang"), "ka");
 });
 
 test("invalid location still offers language-aware service links and an immediate return", () => {
@@ -497,9 +498,9 @@ for (const lang of locales) for (const [location, path] of Object.entries(target
 
 for (const alias of ["uk", "ka", "hy"]) test(`${alias}: explicit link chooses Ukrainian or honest English, not saved Polish`, () => {
   const c = boot(`location=ryczywol&lang=${alias}&welcome=1`, { storage: { "cxDragonGuide:lang": "pl" } });
-  const lang = alias === "uk" ? "ua" : "en";
+  const lang = alias === "uk" ? "ua" : alias;
   assert.equal(c.document.documentElement.lang, lang === "ua" ? "uk" : lang);
-  assert.equal(c.node("languageFallback").hidden, alias === "uk");
+  assert.equal(c.node("languageFallback").hidden, true);
 });
 
 test("generic guide audio error keeps the existing text and direct continue button", async () => {
@@ -538,7 +539,7 @@ test("real HTML exposes the fallback note and all return links; changed CSS/JS h
   assert.ok(html.includes('id="languageFallback" class="language-fallback" role="status" hidden'));
   assert.equal((html.match(/data-hydra-link/g) || []).length, 3);
   for (const path of ["assets/guide.js", "assets/guide.css"]) {
-    const version = path.endsWith(".js") ? "20261017-public-link1" : "20261016-primserv-guide1";
+    const version = path.endsWith(".js") ? "20261017-text-path1" : "20261016-primserv-guide1";
     assert.ok(html.includes(`${path}?v=${version}`));
     assert.ok(sw.includes(`${path}?v=${version}`));
   }
@@ -568,38 +569,30 @@ test("official PrimServ assets, direct links and manifest stay consistent with t
   assert.ok(!sw.includes("assets/brand/citronex-hydra-logo-web.png"));
 });
 
-for (const requested of ["ka", "tr", "hy"]) test(`${requested}: explicit fallback stays honest without storage or autoplay`, () => {
+// #41 intentionally replaces English UI fallback with a local selected-language text path.
+for (const requested of ["ka", "tr", "hy"]) test(`${requested}: full text path without storage or autoplay`, () => {
   const c = boot(`location=ryczywol&lang=${requested}&welcome=1`, { blocked: true, speech: true, browserLanguage: "pl" });
-  assert.equal(c.document.documentElement.lang, "en");
-  assert.equal(c.node("languageFallback").hidden, false);
-  assert.equal(c.node("languageFallback").textContent, `${{ka: "ქართული", tr: "Türkçe", hy: "Հայերեն"}[requested]} → English (EN)`);
+  assert.equal(c.document.documentElement.lang, requested);
+  assert.equal(c.node("languageSelect").value, requested);
+  assert.equal(c.node("languageFallback").hidden, true);
+  for (const id of ['textPathControls', 'audioLanguageNotice', 'targetLanguageNotice']) assert.equal(c.node(id).hidden, false);
+  for (const id of ['speechText','guideTitle','textStep1','textStep2','textStep3','startButton','openButton','copyGuideLink','audioLanguageNotice','targetLanguageNotice']) assert.ok(c.node(id).textContent.length > 4, id);
   assert.equal(c.utterances.length, 0);
   assert.equal(c.node("guideAudio").loads || 0, 0);
   assert.equal(c.redirects.length, 0);
-  c.choose("ua");
-  assert.equal(c.node("languageFallback").hidden, true);
-  assert.equal(c.document.documentElement.lang, "uk");
+  c.choose('en');
+  assert.equal(c.node('textPathControls').hidden, true);
+  assert.equal(c.document.documentElement.lang, 'en');
 });
 
-test("tr: explicit fallback takes precedence over a saved language", () => {
-  const c = boot("lang=tr&welcome=1", { storage: { "cxDragonGuide:lang": "pl" } });
-  assert.equal(c.document.documentElement.lang, "en");
-  assert.equal(c.node("languageFallback").hidden, false);
-  assert.equal(c.node("guideAudio").loads || 0, 0);
-  c.node("skipButton").emit("click");
-  assert.equal(new URL(c.redirects[0]).searchParams.get("lang"), "en");
-});
-
-for (const requested of ["ka", "tr", "hy"]) test(`${requested}: reload retains requested fallback language in URL`, () => {
-  const first = boot(`lang=${requested}&welcome=1`, { storage: { "cxDragonGuide:lang": "pl" } });
-  assert.equal(new URL(first.location.href).searchParams.get("lang"), requested);
+for (const requested of ['ka','tr','hy']) test(`${requested}: selected-language reload takes precedence over saved Polish`, () => {
+  const first = boot(`lang=${requested}&welcome=1`, { storage: { 'cxDragonGuide:lang': 'pl' } });
   const reloaded = boot(first.location.search.slice(1), { storage: Object.fromEntries(first.storage) });
-  assert.equal(reloaded.document.documentElement.lang, "en");
-  assert.equal(reloaded.node("languageFallback").hidden, false);
-  assert.equal(reloaded.node("languageFallback").textContent, first.node("languageFallback").textContent);
-  reloaded.choose("ua");
-  assert.equal(new URL(reloaded.location.href).searchParams.get("lang"), "ua");
-  assert.equal(reloaded.node("languageFallback").hidden, true);
+  assert.equal(reloaded.document.documentElement.lang, requested);
+  assert.equal(new URL(reloaded.location.href).searchParams.get('lang'), requested);
+  assert.equal(reloaded.node('speechText').textContent, first.node('speechText').textContent);
+  reloaded.node('skipButton').emit('click');
+  assert.equal(new URL(reloaded.redirects[0]).searchParams.get('lang'), requested);
 });
 
 for (const selected of ['en', 'ua']) test(`tr: explicit manual ${selected} replaces requested context and preserves other URL parts`, () => {
@@ -659,4 +652,52 @@ test('only existing public guide anchor is retained; manual EN replaces fallback
   c.choose('en'); c.node('copyGuideLink').emit('click'); await new Promise(setImmediate);
   assert.equal(new URL(writes[0]).hash, '');
   assert.equal(new URL(writes[0]).searchParams.get('lang'), 'en');
+});
+
+for (const lang of ['ka','tr','hy']) for (const location of Object.keys(targets)) test(`${lang}/${location}: text location choice persists, copies and opens the allowlisted target`, async () => {
+  const writes = [];
+  const c = boot(`lang=${lang}&welcome=1&secret=omit`, { clipboard: { writeText: async text => writes.push(text) } });
+  c.node('locationSelect').value = location; c.node('locationSelect').emit('change');
+  assert.equal(new URL(c.location.href).searchParams.get('location'), location);
+  assert.equal(c.storage.get('cxDragonGuide:location'), location);
+  assert.ok(c.node('speechText').textContent.length > 100);
+  c.node('copyGuideLink').emit('click'); await new Promise(setImmediate);
+  const copied = new URL(writes[0]);
+  assert.equal(copied.searchParams.get('lang'), lang);
+  assert.equal(copied.searchParams.get('location'), location);
+  assert.equal(copied.searchParams.has('secret'), false);
+  const restored = boot(`lang=${lang}&welcome=1`, { storage: Object.fromEntries(c.storage) });
+  assert.equal(restored.node('locationSelect').value, location);
+  c.node('openButton').emit('click');
+  const target = new URL(c.redirects[0]);
+  assert.equal(target.pathname, '/' + targets[location] + '/');
+  assert.equal(target.searchParams.get('lang'), lang);
+  assert.equal(c.utterances.length, 0);
+  assert.equal(c.node('guideAudio').loads || 0, 0);
+});
+for (const lang of ['ka','tr','hy']) test(`${lang}: only explicit English MP3; no new TTS; failure and completion retain manual text path`, async () => {
+  const c = boot(`location=siechnice&lang=${lang}&welcome=1`, { speech: true, rejectAudio: true });
+  c.node('startButton').emit('click'); await new Promise(setImmediate);
+  assert.match(c.node('guideAudio').src, /intro-en\.mp3/);
+  assert.equal(c.utterances.length, 0);
+  assert.equal(c.node('openButton').hidden, false);
+  assert.ok(c.node('audioStatus').textContent.length > 15);
+  const ok = boot(`location=ryczywol&lang=${lang}&welcome=1`, { speech: true });
+  ok.node('startButton').emit('click'); await new Promise(setImmediate);
+  ok.node('guideAudio').emit('ended');
+  assert.equal(ok.utterances.length, 0);
+  assert.equal(ok.timers.filter(t => !t.cancelled).length, 0);
+  assert.equal(ok.redirects.length, 0);
+  assert.equal(ok.node('openButton').hidden, false);
+});
+for (const lang of ['ka','tr','hy']) test(`${lang}: invalid/corrupt location is rejected and localized`, () => {
+  const c = boot(`lang=${lang}&location=https://bad.invalid`, { blocked: true });
+  assert.equal(c.node('invalidState').hidden, false);
+  assert.ok(c.node('invalidTitle').textContent.length > 5);
+  c.node('openButton').emit('click'); assert.equal(c.redirects.length, 0);
+  const safe = boot(`lang=${lang}&welcome=1`, { storage: { 'cxDragonGuide:location': '{bad', unrelated: 'keep' } });
+  assert.equal(safe.node('locationSelect').value, '');
+  assert.equal(safe.storage.get('unrelated'), 'keep');
+  safe.node('locationSelect').value = 'https://bad.invalid';safe.node('locationSelect').emit('change');
+  assert.equal(new URL(safe.location.href).searchParams.has('location'), false);
 });

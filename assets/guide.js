@@ -397,6 +397,9 @@
   }
 };
   const BUILD = "20260717-location-copy";
+  const TEXT_LANGS = ["ka", "tr", "hy"];
+  LANGS.push(...TEXT_LANGS);
+  function textOnlyLanguage() { return TEXT_LANGS.includes(lang); }
   // Reuse the service labels already published in the PrimServ arrival guide.
   const SERVICE_LABELS = {
     pl: ["Firma PrimServ", "Oferty pracy", "Bot Telegram", "Wróć do Hydry"],
@@ -416,13 +419,14 @@
     try { localStorage.setItem(key, value); } catch { /* Storage is optional; training stays accessible. */ }
   }
   const params = new URLSearchParams(window.location.search);
-  const locationKey = params.get("location");
-  const hasLocation = Object.prototype.hasOwnProperty.call(TARGETS, locationKey);
-  const genericGuide = !locationKey;
-  const validLocation = hasLocation || genericGuide;
-  const forceGuide = params.get("welcome") === "1";
   const requestedLang = params.get("lang") || "";
-  let fallbackLanguage = ["ka", "tr", "hy"].includes(requestedLang);
+  const savedTextLocation = !params.has('location') && TEXT_LANGS.includes(requestedLang || readSaved('cxDragonGuide:lang')) ? readSaved('cxDragonGuide:location') : '';
+  let locationKey = params.get("location") || (Object.hasOwn(TARGETS, savedTextLocation) ? savedTextLocation : null);
+  let hasLocation = Object.prototype.hasOwnProperty.call(TARGETS, locationKey);
+  let genericGuide = !locationKey;
+  let validLocation = hasLocation || genericGuide;
+  const forceGuide = params.get("welcome") === "1";
+  let fallbackLanguage = false;
   const normalizedLang = requestedLang === "uk" ? "ua" : fallbackLanguage ? "en" : requestedLang;
   const queryLang = LANGS.includes(normalizedLang) ? normalizedLang : "";
   const savedLang = readSaved("cxDragonGuide:lang");
@@ -471,6 +475,156 @@
     ne: { locationLabel: "स्थान", hint: "तालिम सुरु गर्नुअघि छोटो मार्गदर्शन।", title: "नमस्ते। म तपाईंलाई प्रणालीमा के छ भनेर देखाउँछु।", intro: "भाषा छान्नुहोस्, छोटो मार्गदर्शन सुन्नुहोस् र सही स्थानमा जानुहोस्।", first: ["पहिले", "सही स्थान खोज्नुहोस्", "नक्सा खोल्नुहोस् र ग्रीनहाउस वा गोदाम छान्नुहोस्।"], second: ["त्यसपछि", "क्रमशः सिक्नुहोस्", "Reader, Tablet, ग्रीनहाउस, निषेध वा आवश्यक जानकारी छान्नुहोस्।"], third: ["अन्त्यमा", "तालिम सुरु गर्नुहोस्", "मार्गदर्शनपछि तपाईंको स्थानको पृष्ठ खुल्नेछ।"], start: "सुन्नुहोस् र सुरु गर्नुहोस्", open: "तालिम खोल्नुहोस्", pause: "पज", resume: "जारी राख्नुहोस्", replay: "फेरि सुन्नुहोस्", skip: "आवाज छोड्नुहोस्", reading: "रेकर्डिङ सुन्दै पाठ पढ्न सक्नुहुन्छ।", playing: "ड्रागन बोल्दैछ। तपाईं पाठ पढ्न सक्नुहुन्छ।", paused: "अडियो रोकिएको छ।", finished: "मार्गदर्शन सकियो। तालिम खोलिँदैछ…", fallback: "रेकर्डिङ अहिले उपलब्ध छैन। मार्गदर्शनको पाठ देखिइरहन्छ।", gateTitle: "भाषा छान्नुहोस्", gateText: "ड्रागनले तपाईंलाई रोजेको भाषामा स्वागत गर्नेछ र प्रणाली कसरी प्रयोग गर्ने देखाउनेछ।" }
   };
 
+  // Local draft translations of accepted EN guide facts; not native-reviewed.
+  const TEXT_PATH = {
+  "tr": {
+    "copy": [
+      "Rehber bağlantısını kopyala",
+      "Bağlantı kopyalandı.",
+      "Aşağıdaki bağlantıyı elle kopyalayın.",
+      "Rehber bağlantısı"
+    ],
+    "services": [
+      "PrimServ şirketi",
+      "İş ilanları",
+      "Telegram botu",
+      "Hydra’ya dön"
+    ],
+    "steps": [
+      "1. Çalışma yerinizi seçin.",
+      "2. Haritayı ve ihtiyacınız olan talimatları okuyun.",
+      "3. Eğitimi açın veya rehber bağlantısını kopyalayın."
+    ],
+    "audio": "Metin Türkçedir. İsteğe bağlı mevcut ses İngilizcedir. Otomatik başlamaz.",
+    "target": "Eğitim sayfasına Türkçe dil seçimi ile geçilir. Bazı eğitim içeriklerinin Türkçe çevirisi henüz bulunmayabilir.",
+    "location": "Çalışma yeri seçin",
+    "generic": "Genel rehber",
+    "invalidTitle": "Konum bulunamadı",
+    "invalidText": "Hydra’ya dönün veya geçerli bir çalışma yeri bağlantısı açın.",
+    "genericText": "Citronex sistemine hoş geldiniz. Dilinizi ve çalışma yerinizi seçin. Burada haritalar, talimatlar, iletişim bilgileri ve önemli kurallar bulunur.",
+    "locations": {
+      "siechnice": "Siechnice eğitimine hoş geldiniz. Önce haritayı açın ve nereye gitmeniz gerektiğini kontrol edin. Sayfada sera, depo, Reader (kayıt okuyucu cihaz) ve tablet talimatları, iletişim bilgileri ve önemli kurallar bulunur. İhtiyacınız olan bölümü seçin ve adım adım izleyin.",
+      "ryczywol": "Ryczywół eğitimine hoş geldiniz. Önce haritayı kontrol edin ve doğru yeri seçin: otel, ofis, sera, depo veya otobüs durağı. İş, Reader (kayıt okuyucu cihaz) ve tablet talimatları ayrı bölümlerdedir. Şimdi ihtiyacınız olan bilgiyi seçin.",
+      "zgorzelec_bogatynia": "Bu konum iki ayrı çalışma yerini kapsar. Zgorzelec muz deposudur ve ayrı bir sistem kullanır. Bogatynia’da sera ve depo bulunur; Reader (kayıt okuyucu cihaz) ve tabletler kullanılır. Başlamadan önce eğitiminizin hangi yer için olduğunu kontrol edin ve doğru sistemi seçin."
+    },
+    "controls": {
+      "locationLabel": "KONUM",
+      "title": "Citronex rehberine hoş geldiniz.",
+      "intro": "Dil ve çalışma yeri seçin. Metni okuyun.",
+      "start": "İngilizce sesi dinle",
+      "open": "Eğitimi aç",
+      "pause": "Duraklat",
+      "resume": "Devam et",
+      "replay": "Tekrar dinle",
+      "skip": "Ses olmadan devam et",
+      "reading": "Metni okuyabilirsiniz. Ses isteğe bağlıdır ve İngilizcedir.",
+      "playing": "İngilizce ses çalıyor. Metni kendi dilinizde okuyabilirsiniz.",
+      "paused": "Ses duraklatıldı.",
+      "finished": "Ses bitti. Eğitimi açabilirsiniz.",
+      "fallback": "Ses kullanılamıyor. Metni okuyabilir ve eğitimi açabilirsiniz.",
+      "gateTitle": "Dil seçin",
+      "gateText": "Önce dili, sonra çalışma yerini seçin."
+    }
+  },
+  "ka": {
+    "copy": [
+      "გზამკვლევის ბმულის კოპირება",
+      "ბმული დაკოპირებულია.",
+      "ქვემოთ მოცემული ბმული ხელით დააკოპირეთ.",
+      "გზამკვლევის ბმული"
+    ],
+    "services": [
+      "კომპანია PrimServ",
+      "ვაკანსიები",
+      "Telegram ბოტი",
+      "Hydra-ზე დაბრუნება"
+    ],
+    "steps": [
+      "1. აირჩიეთ თქვენი სამუშაო ადგილი.",
+      "2. წაიკითხეთ რუკა და საჭირო ინსტრუქციები.",
+      "3. გახსენით სწავლება ან დააკოპირეთ გზამკვლევის ბმული."
+    ],
+    "audio": "ტექსტი ქართულადაა. არსებული აუდიო არჩევითია და ინგლისურენოვანია. ის ავტომატურად არ ირთვება.",
+    "target": "სწავლების გვერდს ქართული ენის არჩევანით გახსნით. ზოგი სასწავლო მასალის ქართული თარგმანი შეიძლება ჯერ არ იყოს ხელმისაწვდომი.",
+    "location": "აირჩიეთ სამუშაო ადგილი",
+    "generic": "ზოგადი გზამკვლევი",
+    "invalidTitle": "ლოკაცია ვერ მოიძებნა",
+    "invalidText": "დაბრუნდით Hydra-ზე ან გახსენით სწორი სამუშაო ადგილის ბმული.",
+    "genericText": "კეთილი იყოს თქვენი მობრძანება Citronex-ის სისტემაში. აირჩიეთ ენა და სამუშაო ადგილი. აქ ნახავთ რუკებს, ინსტრუქციებს, საკონტაქტო ინფორმაციას და მნიშვნელოვან წესებს.",
+    "locations": {
+      "siechnice": "კეთილი იყოს თქვენი მობრძანება Siechnice-ის სწავლებაზე. ჯერ გახსენით რუკა და შეამოწმეთ, სად უნდა მიხვიდეთ. გვერდზე არის სათბურის, საწყობის, Reader-ის (აღრიცხვის წამკითხველი მოწყობილობის) და პლანშეტის ინსტრუქციები, საკონტაქტო ინფორმაცია და მნიშვნელოვანი წესები. აირჩიეთ საჭირო განყოფილება და მიჰყევით ნაბიჯებს.",
+      "ryczywol": "კეთილი იყოს თქვენი მობრძანება Ryczywół-ის სწავლებაზე. ჯერ შეამოწმეთ რუკა და აირჩიეთ სწორი ადგილი: სასტუმრო, ოფისი, სათბური, საწყობი ან ავტობუსის გაჩერება. სამუშაოს, Reader-ის (აღრიცხვის წამკითხველი მოწყობილობის) და პლანშეტის ინსტრუქციები ცალკე განყოფილებებშია. აირჩიეთ ახლა საჭირო ინფორმაცია.",
+      "zgorzelec_bogatynia": "ეს ლოკაცია ორ სხვადასხვა სამუშაო ადგილს მოიცავს. Zgorzelec ბანანის საწყობია და ცალკე სისტემას იყენებს. Bogatynia-ში არის სათბური და საწყობი, სადაც Reader-ს (აღრიცხვის წამკითხველ მოწყობილობას) და პლანშეტებს იყენებენ. დაწყებამდე შეამოწმეთ, რომელი ადგილისთვისაა სწავლება და აირჩიეთ სწორი სისტემა."
+    },
+    "controls": {
+      "locationLabel": "ლოკაცია",
+      "title": "კეთილი იყოს თქვენი მობრძანება Citronex-ის გზამკვლევში.",
+      "intro": "აირჩიეთ ენა და სამუშაო ადგილი. წაიკითხეთ ტექსტი.",
+      "start": "ინგლისური აუდიოს მოსმენა",
+      "open": "სწავლების გახსნა",
+      "pause": "პაუზა",
+      "resume": "გაგრძელება",
+      "replay": "ხელახლა მოსმენა",
+      "skip": "გაგრძელება აუდიოს გარეშე",
+      "reading": "შეგიძლიათ წაიკითხოთ ტექსტი. აუდიო არჩევითია და ინგლისურენოვანია.",
+      "playing": "ინგლისური აუდიო ირთვება. ტექსტი შეგიძლიათ თქვენს ენაზე წაიკითხოთ.",
+      "paused": "აუდიო შეჩერებულია.",
+      "finished": "აუდიო დასრულდა. შეგიძლიათ გახსნათ სწავლება.",
+      "fallback": "აუდიო მიუწვდომელია. შეგიძლიათ წაიკითხოთ ტექსტი და გახსნათ სწავლება.",
+      "gateTitle": "აირჩიეთ ენა",
+      "gateText": "ჯერ აირჩიეთ ენა, შემდეგ სამუშაო ადგილი."
+    }
+  },
+  "hy": {
+    "copy": [
+      "Պատճենել ուղեցույցի հղումը",
+      "Հղումը պատճենված է։",
+      "Ստորև նշված հղումը պատճենեք ձեռքով։",
+      "Ուղեցույցի հղում"
+    ],
+    "services": [
+      "PrimServ ընկերություն",
+      "Թափուր աշխատատեղեր",
+      "Telegram բոտ",
+      "Վերադառնալ Hydra"
+    ],
+    "steps": [
+      "1. Ընտրեք ձեր աշխատանքի վայրը։",
+      "2. Կարդացեք քարտեզը և անհրաժեշտ հրահանգները։",
+      "3. Բացեք ուսուցումը կամ պատճենեք ուղեցույցի հղումը։"
+    ],
+    "audio": "Տեքստը հայերեն է։ Առկա ձայնագրությունն ընտրովի է և անգլերեն։ Այն ինքնաբերաբար չի միանում։",
+    "target": "Ուսուցման էջը կբացվի հայերենի ընտրությամբ։ Որոշ ուսումնական նյութերի հայերեն թարգմանությունը կարող է դեռ հասանելի չլինել։",
+    "location": "Ընտրեք աշխատանքի վայրը",
+    "generic": "Ընդհանուր ուղեցույց",
+    "invalidTitle": "Տեղանքը չի գտնվել",
+    "invalidText": "Վերադարձեք Hydra կամ բացեք աշխատանքի վայրի ճիշտ հղումը։",
+    "genericText": "Բարի գալուստ Citronex համակարգ։ Ընտրեք լեզուն և աշխատանքի վայրը։ Այստեղ կգտնեք քարտեզներ, հրահանգներ, կապի տվյալներ և կարևոր կանոններ։",
+    "locations": {
+      "siechnice": "Բարի գալուստ Siechnice-ի ուսուցում։ Նախ բացեք քարտեզը և ստուգեք, թե ուր պետք է գնաք։ Էջում կան ջերմոցի, պահեստի, Reader-ի (հաշվառման ընթերցող սարքի) և պլանշետի հրահանգներ, կապի տվյալներ և կարևոր կանոններ։ Ընտրեք անհրաժեշտ բաժինը և հետևեք քայլերին։",
+      "ryczywol": "Բարի գալուստ Ryczywół-ի ուսուցում։ Նախ ստուգեք քարտեզը և ընտրեք ճիշտ տեղը՝ հյուրանոց, գրասենյակ, ջերմոց, պահեստ կամ ավտոբուսի կանգառ։ Աշխատանքի, Reader-ի (հաշվառման ընթերցող սարքի) և պլանշետի հրահանգները առանձին բաժիններում են։ Ընտրեք հիմա անհրաժեշտ տեղեկությունը։",
+      "zgorzelec_bogatynia": "Այս տեղանքը ներառում է երկու տարբեր աշխատավայր։ Zgorzelec-ը բանանի պահեստ է և օգտագործում է առանձին համակարգ։ Bogatynia-ում կան ջերմոց և պահեստ, որտեղ օգտագործվում են Reader (հաշվառման ընթերցող սարք) և պլանշետներ։ Սկսելուց առաջ ստուգեք, թե որ վայրի համար է ուսուցումը և ընտրեք ճիշտ համակարգը։"
+    },
+    "controls": {
+      "locationLabel": "ՏԵՂԱՆՔ",
+      "title": "Բարի գալուստ Citronex-ի ուղեցույց։",
+      "intro": "Ընտրեք լեզուն և աշխատանքի վայրը։ Կարդացեք տեքստը։",
+      "start": "Լսել անգլերեն ձայնագրությունը",
+      "open": "Բացել ուսուցումը",
+      "pause": "Դադար",
+      "resume": "Շարունակել",
+      "replay": "Կրկին լսել",
+      "skip": "Շարունակել առանց ձայնի",
+      "reading": "Կարող եք կարդալ տեքստը։ Ձայնագրությունն ընտրովի է և անգլերեն։",
+      "playing": "Նվագարկվում է անգլերեն ձայնագրությունը։ Տեքստը կարող եք կարդալ ձեր լեզվով։",
+      "paused": "Ձայնագրությունը դադարեցված է։",
+      "finished": "Ձայնագրությունն ավարտվեց։ Կարող եք բացել ուսուցումը։",
+      "fallback": "Ձայնագրությունն անհասանելի է։ Կարող եք կարդալ տեքստը և բացել ուսուցումը։",
+      "gateTitle": "Ընտրեք լեզուն",
+      "gateText": "Նախ ընտրեք լեզուն, ապա աշխատանքի վայրը։"
+    }
+  }
+};
   const LINK_COPY = {
     pl: ['Kopiuj link do przewodnika', 'Link skopiowany.', 'Skopiuj ręcznie poniższy link.', 'Link do przewodnika'],
     en: ['Copy guide link', 'Link copied.', 'Copy the link below manually.', 'Guide link'],
@@ -482,6 +636,16 @@
     id: ['Salin tautan panduan', 'Tautan disalin.', 'Salin tautan di bawah secara manual.', 'Tautan panduan'],
     ne: ['गाइडको लिङ्क प्रतिलिपि गर्नुहोस्', 'लिङ्क प्रतिलिपि भयो।', 'तलको लिङ्क आफैँ प्रतिलिपि गर्नुहोस्।', 'गाइडको लिङ्क']
   };
+  for (const code of TEXT_LANGS) {
+    const entry = TEXT_PATH[code];
+    TEXT[code] = entry.controls;
+    SERVICE_LABELS[code] = entry.services;
+    LINK_COPY[code] = entry.copy;
+    GENERIC_GUIDE_COPY[code] = { title: entry.controls.title, hint: entry.controls.intro, gate: entry.controls.gateText, spoken: entry.genericText };
+    for (const location of Object.keys(TARGETS)) LOCATION_GUIDE_COPY[location][code] = {
+      title: entry.controls.title, hint: LOCATION_NAMES[location], gate: entry.controls.gateText, spoken: entry.locations[location]
+    };
+  }
   let copyGeneration = 0;
   function publicGuideURL() {
     const url = new URL('https://oleksandrkiris.github.io/citronex-dragon-guide/');
@@ -571,6 +735,29 @@
     setText("gateTitle", copy.gateTitle);
     setText("languageLabel", copy.gateTitle);
     setText("gateText", locationCopy.gate);
+    const textPath = TEXT_PATH[lang];
+    $('textPathControls').hidden = !textPath;
+    $('audioLanguageNotice').hidden = !textPath;
+    $('targetLanguageNotice').hidden = !textPath;
+    if (textPath) {
+      setText('audioLanguageNotice', textPath.audio);
+      setText('targetLanguageNotice', textPath.target);
+      setText('locationSelectLabel', textPath.location);
+      setText('genericLocationOption', textPath.generic);
+      $('locationSelect').value = hasLocation ? locationKey : '';
+      textPath.steps.forEach((step, index) => setText('textStep' + (index + 1), step));
+      setText('speechLabel', textPath.controls.intro);
+      $('guideActions').setAttribute('aria-label', textPath.controls.title);
+      setText('invalidTitle', textPath.invalidTitle);
+      setText('invalidText', textPath.invalidText);
+      setText('invalidReturn', textPath.services[3]);
+      openButton.hidden = false;
+    } else {
+      $('guideActions').setAttribute('aria-label', 'Sterowanie przewodnikiem');
+      setText('invalidTitle', 'Nie wybrano lokalizacji');
+      setText('invalidText', 'Wróć do głównego portalu HYDRA i wybierz miejsce pracy.');
+      setText('invalidReturn', 'Wróć do portalu');
+    }
     resetGuideCopy();
   }
 
@@ -648,6 +835,14 @@
   }
 
   function speakFallback() {
+    if (textOnlyLanguage()) {
+      playbackActive = false;
+      setSpeaking(false);
+      audioStatus.textContent = t().fallback;
+      openButton.hidden = false;
+      pauseButton.hidden = true;
+      return;
+    }
     if (speechFallbackActive) return;
     if (!window.speechSynthesis) { playbackActive = false; audioStatus.textContent = t().fallback; openButton.hidden = false; pauseButton.hidden = true; return; }
     stopSpeechFallback();
@@ -677,7 +872,7 @@
   }
 
   function prepareAudio() {
-    const nextSource = AUDIO[lang];
+    const nextSource = AUDIO[lang] || AUDIO.en;
     // A failed media resource needs a new load cycle on explicit start/replay.
     // Keep the healthy recording buffered; never retry from an error event.
     if (audio.src.endsWith(nextSource) && !audio.error) return;
@@ -696,12 +891,13 @@
     openButton.hidden = false;
     startButton.hidden = true;
     audioStatus.textContent = t().finished;
+    if (textOnlyLanguage()) return;
     clearTimeout(redirectTimer);
     redirectTimer = window.setTimeout(() => { if (generation === playbackGeneration) finishAndOpen(); }, 1100);
   }
 
   function startPlayback() {
-    if (hasLocation) {
+    if (hasLocation && !textOnlyLanguage()) {
       startSpeechGuide();
       return;
     }
@@ -747,7 +943,7 @@
   }
 
   function replay() {
-    if (hasLocation) {
+    if (hasLocation && !textOnlyLanguage()) {
       startSpeechGuide();
       return;
     }
@@ -791,12 +987,29 @@
   replayButton.addEventListener("click", replay);
   skipButton.addEventListener("click", finishAndOpen);
   $("copyGuideLink").addEventListener("click", copyGuideLink);
+  $('locationSelect').addEventListener('change', () => {
+    const selected = $('locationSelect').value;
+    if (!textOnlyLanguage() || (selected && !Object.hasOwn(TARGETS, selected))) return;
+    locationKey = selected || null;
+    hasLocation = Boolean(selected);
+    genericGuide = !selected;
+    validLocation = true;
+    savePreference('cxDragonGuide:location', selected);
+    try {
+      const current = new URL(window.location.href);
+      if (selected) current.searchParams.set('location', selected);
+      else current.searchParams.delete('location');
+      current.searchParams.set('welcome', '1');
+      history.replaceState(history.state, '', current.toString());
+    } catch { /* Optional history; current controls and public copy still work. */ }
+    applyLanguage(lang);
+  });
   languageGate.querySelectorAll("[data-gate-lang]").forEach((button) => button.addEventListener("click", () => { applyLanguage(button.dataset.gateLang, true); setGateVisible(false); }));
 
   if (!validLocation) {
     invalidState.hidden = false;
     applyLanguage(lang);
-  } else if (hasLocation && wasSeen() && !forceGuide) {
+  } else if (hasLocation && wasSeen() && !forceGuide && !textOnlyLanguage()) {
     document.body.classList.add("is-redirecting");
     window.setTimeout(finishAndOpen, 80);
   } else {

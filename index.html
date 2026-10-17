@@ -34,6 +34,9 @@
           <option value="es">Espa&ntilde;ol</option>
           <option value="fil">Filipino</option>
           <option value="id">Bahasa Indonesia</option>
+          <option value="ka">ქართული</option>
+          <option value="tr">Türkçe</option>
+          <option value="hy">Հայերեն</option>
           <option value="ne">&#2344;&#2375;&#2346;&#2366;&#2354;&#2368;</option>
         </select>
       </label>
@@ -56,6 +59,18 @@
         </div>
       </section>
 
+      <section id="textPathControls" hidden>
+        <label id="locationSelectLabel" for="locationSelect"></label>
+        <select id="locationSelect" style="max-width:100%">
+          <option id="genericLocationOption" value=""></option>
+          <option value="siechnice">Siechnice</option>
+          <option value="ryczywol">Ryczywół</option>
+          <option value="zgorzelec_bogatynia">Zgorzelec / Bogatynia</option>
+        </select>
+        <ol style="list-style:none;padding:0"><li id="textStep1"></li><li id="textStep2"></li><li id="textStep3"></li></ol>
+      </section>
+      <p id="audioLanguageNotice" class="audio-status" hidden></p>
+      <p id="targetLanguageNotice" class="audio-status" hidden></p>
       <section class="dragon-stage" aria-labelledby="guideTitle">
         <div class="dragon-wrap" id="dragonWrap" aria-hidden="true">
           <svg class="dragon" viewBox="0 0 360 320" role="img" aria-label="Friendly CITRONEX dragon">
@@ -117,7 +132,7 @@
         </div>
       </section>
 
-      <section class="guide-actions" aria-label="Sterowanie przewodnikiem">
+      <section id="guideActions" class="guide-actions" aria-label="Sterowanie przewodnikiem">
         <div class="primary-actions">
           <button id="startButton" class="action-button action-primary" type="button">Pos&#322;uchaj i rozpocznij</button>
           <button id="openButton" class="action-button action-primary" type="button" hidden>Otw&oacute;rz szkolenie</button>
@@ -140,9 +155,9 @@
 
     <section id="invalidState" class="invalid-state" hidden>
       <div class="invalid-icon" aria-hidden="true">!</div>
-      <h1>Nie wybrano lokalizacji</h1>
-      <p>Wr&oacute;&#263; do g&#322;&oacute;wnego portalu HYDRA i wybierz miejsce pracy.</p>
-      <a class="action-button action-primary" href="https://oleksandrkiris.github.io/citronex-hydra-project/" data-hydra-link>Wr&oacute;&#263; do portalu</a>
+      <h1 id="invalidTitle">Nie wybrano lokalizacji</h1>
+      <p id="invalidText">Wr&oacute;&#263; do g&#322;&oacute;wnego portalu HYDRA i wybierz miejsce pracy.</p>
+      <a id="invalidReturn" class="action-button action-primary" href="https://oleksandrkiris.github.io/citronex-hydra-project/" data-hydra-link>Wr&oacute;&#263; do portalu</a>
     </section>
 
     <div id="languageGate" class="language-gate" hidden>
@@ -160,6 +175,9 @@
           <button type="button" data-gate-lang="es">Espa&ntilde;ol</button>
           <button type="button" data-gate-lang="fil">Filipino</button>
           <button type="button" data-gate-lang="id">Bahasa Indonesia</button>
+          <button id="gate-ka" type="button" data-gate-lang="ka">ქართული</button>
+          <button id="gate-tr" type="button" data-gate-lang="tr">Türkçe</button>
+          <button id="gate-hy" type="button" data-gate-lang="hy">Հայերեն</button>
           <button type="button" data-gate-lang="ne">&#2344;&#2375;&#2346;&#2366;&#2354;&#2368;</button>
         </div>
       </div>
@@ -167,6 +185,6 @@
 
     <footer class="footer-note">PrimServ &middot; HYDRA</footer>
   </div>
-  <script src="assets/guide.js?v=20261017-public-link1" defer></script>
+  <script src="assets/guide.js?v=20261017-text-path1" defer></script>
 </body>
 </html>
