@@ -32,6 +32,14 @@ for (const file of files) {
   previous.set(file, git('show', `${report.base}:${file}`));
   report.files[file] = { bytes: bytes.length, sha256: sha256(bytes) };
 }
+const cacheName = bytes => {
+  const match = bytes.toString().match(/const CACHE_NAME = CACHE_PREFIX \+ "([^"]+)"/);
+  assert.ok(match, 'Versioned guide cache must be explicit');
+  return 'citronex-dragon-guide-' + match[1];
+};
+const baseCache = cacheName(previous.get('sw.js'));
+const headCache = cacheName(current.get('sw.js'));
+assert.notEqual(baseCache, headCache, 'This acceptance requires a real SW upgrade');
 let oldVersion = false;
 const prefix = '/citronex-dragon-guide/';
 const types = { html: 'text/html', js: 'application/javascript', css: 'text/css',
@@ -166,6 +174,46 @@ try {
     assert.equal(await page.locator('#languageSelect').inputValue(), 'en');
     report.results.push({ scenario: 'cold MP3 offline error twice → online Start → pause/resume/replay; nine languages; offline reload; ka fallback; Back', width, pass: true });
   }
+  // Explicit unsupported language must beat stored preferences, without executing audio.
+  for (const width of [1280, 320]) for (const storage of ['saved-pl', 'corrupt']) {
+    const { ctx, page } = await context(width, storage === 'corrupt' ? storage : '');
+    let mediaRequests = 0;
+    ctx.on('request', req => { if (new URL(req.url()).pathname.endsWith('.mp3')) mediaRequests++; });
+    await ctx.addInitScript(({ saved }) => {
+      if (saved) localStorage.setItem('cxDragonGuide:lang', 'pl');
+      window.__acceptanceAudioCalls = 0;
+      HTMLMediaElement.prototype.play = function () {
+        window.__acceptanceAudioCalls++;
+        return Promise.reject(new Error('Audio execution forbidden in fallback-only test'));
+      };
+      if (window.speechSynthesis) window.speechSynthesis.speak = function () { window.__acceptanceAudioCalls++; };
+    }, { saved: storage === 'saved-pl' });
+    const honestFallback = async () => {
+      assert.equal(await page.locator('html').getAttribute('lang'), 'en');
+      assert.equal(await page.locator('#languageSelect').inputValue(), 'en');
+      assert.equal(await page.locator('#languageFallback').innerText(), 'Türkçe → English (EN)');
+      assert.equal(await page.locator('#languageFallback').isVisible(), true);
+      assert.ok((await page.locator('#speechText').innerText()).length > 30);
+      assert.equal(await page.locator('audio').getAttribute('src'), null);
+      assert.equal(await page.evaluate(() => window.__acceptanceAudioCalls), 0);
+      assert.equal(mediaRequests, 0);
+    };
+    await page.goto(`${base}?lang=tr&welcome=1`); await ready(page); await controlled(page);
+    await honestFallback();
+    await page.reload(); await ready(page); await honestFallback();
+    await shot(page, `tr-${storage}-${width}`);
+    await keyboard(page, 'skipButton');
+    await page.waitForURL(/citronex-hydra-project/);
+    assert.equal(new URL(page.url()).searchParams.get('lang'), 'en', 'Explicit effective-language handoff');
+    await page.goBack(); await ready(page); await honestFallback();
+    if (storage === 'corrupt') assert.equal(await page.evaluate(() => localStorage.getItem('unrelated')), 'keep');
+    await page.locator('#languageSelect').selectOption('ua');
+    assert.equal(await page.locator('#languageFallback').isVisible(), false);
+    assert.equal(await page.locator('html').getAttribute('lang'), 'uk');
+    assert.equal(await page.evaluate(() => window.__acceptanceAudioCalls), 0);
+    assert.equal(mediaRequests, 0);
+    report.results.push({ scenario: 'explicit tr → en; visible notice; keyboard handoff; reload/Back; no audio execution/request', width, storage, pass: true });
+  }
   for (const storage of ['corrupt', 'denied']) {
     const { page } = await context(320, storage);
     await page.goto(`${base}?welcome=1`); await ready(page);
@@ -188,10 +236,10 @@ try {
   await page.evaluate(async () => { localStorage.setItem('unrelated', 'keep'); await caches.open('unrelated-cache'); });
   oldVersion = false;
   await page.evaluate(async () => { const reg = await navigator.serviceWorker.ready; await reg.update(); });
-  await page.waitForFunction(async () => {
+  await page.waitForFunction(async ({ baseCache, headCache }) => {
     const keys = await caches.keys();
-    return keys.includes('citronex-dragon-guide-20261017-media-retry1') && !keys.includes('citronex-dragon-guide-20261016-primserv-guide5');
-  });
+    return keys.includes(headCache) && !keys.includes(baseCache);
+  }, { baseCache, headCache });
   await page.reload(); await ready(page); await controlled(page);
   assert.equal(await page.evaluate(key => localStorage.getItem(key), seen), '1');
   assert.equal(await page.evaluate(() => localStorage.getItem('unrelated')), 'keep');
@@ -200,12 +248,33 @@ try {
   await offline(ctx, true); await page.reload(); await ready(page);
   assert.equal(await page.locator('#languageSelect').inputValue(), 'ua');
   assert.equal(await page.evaluate(key => localStorage.getItem(key), seen), '1');
-  report.cache = await page.evaluate(async () => {
-    const c = await caches.open('citronex-dragon-guide-20261017-media-retry1');
+  // The old helper could pass on the base cache before head activation.
+  // With the origin stopped, prove head behavior and exact head JS bytes.
+  await page.goto(`${base}?lang=tr&welcome=1`); await ready(page); await controlled(page);
+  await page.reload(); await ready(page);
+  assert.equal(await page.evaluate(() => navigator.onLine), false);
+  assert.equal(await page.locator('html').getAttribute('lang'), 'en');
+  assert.equal(await page.locator('#languageFallback').innerText(), 'Türkçe → English (EN)');
+  assert.equal(await page.locator('#languageFallback').isVisible(), true);
+  assert.equal(await page.locator('audio').getAttribute('src'), null);
+  assert.equal(await page.evaluate(key => localStorage.getItem(key), seen), '1');
+  assert.equal(await page.evaluate(() => localStorage.getItem('unrelated')), 'keep');
+  const offlineScriptHash = await page.evaluate(async headCache => {
+    const cache = await caches.open(headCache);
+    const script = Array.from(document.scripts).find(node => node.src.includes('/assets/guide.js'));
+    const response = await cache.match(script.src);
+    if (!response) throw new Error('HEAD script absent from HEAD cache');
+    const hash = await crypto.subtle.digest('SHA-256', await response.arrayBuffer());
+    return Array.from(new Uint8Array(hash), byte => byte.toString(16).padStart(2, '0')).join('');
+  }, headCache);
+  assert.equal(offlineScriptHash, sha256(current.get('assets/guide.js')), 'Offline HEAD JS hash');
+  report.cache = await page.evaluate(async headCache => {
+    const c = await caches.open(headCache);
     const rows = []; for (const req of await c.keys()) { const res = await c.match(req); rows.push({ url: req.url, bytes: (await res.arrayBuffer()).byteLength }); } return rows;
-  });
+  }, headCache);
+  report.cacheUpgrade = { baseCache, headCache, offlineScriptHash, offlineHeadTurkishNotice: true };
   await shot(page, 'cache-upgrade-offline');
-  report.results.push({ scenario: 'actual base SW → head SW, preserved language/seen/unrelated storage/cache, offline reload', pass: true });
+  report.results.push({ scenario: 'actual base SW → head SW; old cache deleted; preserved language/seen/unrelated; offline HEAD tr notice and JS hash', pass: true });
   assert.deepEqual(report.errors, []);
   assert.ok(report.blocked.every(r => ['GET', 'HEAD'].includes(r.method)), 'No submissions');
   report.pass = true;
