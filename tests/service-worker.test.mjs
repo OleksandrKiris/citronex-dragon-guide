@@ -27,7 +27,7 @@ function worker({ network = new Response('fresh'), cached, failPut = false, fail
     caches: {
       open: async name => { calls.open.push(name); return cache; },
       match: async (...args) => { calls.match.push(args); return cached; },
-      keys: async () => ['citronex-dragon-guide-older', 'citronex-dragon-guide-20261016-primserv-guide1', 'citronex-dragon-guide-20261016-primserv-guide2', 'citronex-dragon-guide-20261016-primserv-guide3', 'citronex-dragon-guide-20261016-primserv-guide4', 'citronex-dragon-guide-20261016-primserv-guide5', 'citronex-dragon-guide-20261017-media-retry1', 'citronex-dragon-guide-20261017-tr-fallback1', 'unrelated-cache'],
+      keys: async () => ['citronex-dragon-guide-older', 'citronex-dragon-guide-20261016-primserv-guide1', 'citronex-dragon-guide-20261016-primserv-guide2', 'citronex-dragon-guide-20261016-primserv-guide3', 'citronex-dragon-guide-20261016-primserv-guide4', 'citronex-dragon-guide-20261016-primserv-guide5', 'citronex-dragon-guide-20261017-media-retry1', 'citronex-dragon-guide-20261017-tr-fallback1', 'citronex-dragon-guide-20261017-public-link1', 'unrelated-cache'],
       delete: async key => { calls.deleted.push(key); },
     },
     fetch: async request => {
@@ -130,6 +130,6 @@ test('missing optional core resources cannot prevent installation', async () => 
 test('activation removes only older caches in this guide namespace', async () => {
   const w = worker();
   await w.lifecycle('activate');
-  assert.deepEqual(w.calls.deleted, ['citronex-dragon-guide-older', 'citronex-dragon-guide-20261016-primserv-guide1', 'citronex-dragon-guide-20261016-primserv-guide2', 'citronex-dragon-guide-20261016-primserv-guide3', 'citronex-dragon-guide-20261016-primserv-guide4', 'citronex-dragon-guide-20261016-primserv-guide5', 'citronex-dragon-guide-20261017-media-retry1']);
+  assert.deepEqual(w.calls.deleted, ['citronex-dragon-guide-older', 'citronex-dragon-guide-20261016-primserv-guide1', 'citronex-dragon-guide-20261016-primserv-guide2', 'citronex-dragon-guide-20261016-primserv-guide3', 'citronex-dragon-guide-20261016-primserv-guide4', 'citronex-dragon-guide-20261016-primserv-guide5', 'citronex-dragon-guide-20261017-media-retry1', 'citronex-dragon-guide-20261017-tr-fallback1']);
   assert.equal(w.calls.claim, 1);
 });

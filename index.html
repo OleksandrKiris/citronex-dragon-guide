@@ -127,6 +127,12 @@
           <button id="replayButton" class="action-button action-secondary" type="button" hidden>Powt&oacute;rz</button>
           <button id="skipButton" class="action-button action-secondary" type="button">Pomi&#324; g&#322;os</button>
         </div>
+        <button id="copyGuideLink" class="action-button action-secondary" type="button">Kopiuj link do przewodnika</button>
+        <p id="copyGuideStatus" class="audio-status" role="status" aria-live="polite"></p>
+        <div id="manualGuideLink" hidden>
+          <label id="guideLinkLabel" for="guideLinkURL">Link do przewodnika</label>
+          <input id="guideLinkURL" type="text" readonly spellcheck="false" dir="ltr" style="width:100%;box-sizing:border-box;min-width:0">
+        </div>
         <p id="audioStatus" class="audio-status" role="status">Wybierz j&#281;zyk.</p>
         <audio id="guideAudio" preload="none"></audio>
       </section>
@@ -161,6 +167,6 @@
 
     <footer class="footer-note">PrimServ &middot; HYDRA</footer>
   </div>
-  <script src="assets/guide.js?v=20261017-tr-fallback1" defer></script>
+  <script src="assets/guide.js?v=20261017-public-link1" defer></script>
 </body>
 </html>

@@ -471,6 +471,56 @@
     ne: { locationLabel: "स्थान", hint: "तालिम सुरु गर्नुअघि छोटो मार्गदर्शन।", title: "नमस्ते। म तपाईंलाई प्रणालीमा के छ भनेर देखाउँछु।", intro: "भाषा छान्नुहोस्, छोटो मार्गदर्शन सुन्नुहोस् र सही स्थानमा जानुहोस्।", first: ["पहिले", "सही स्थान खोज्नुहोस्", "नक्सा खोल्नुहोस् र ग्रीनहाउस वा गोदाम छान्नुहोस्।"], second: ["त्यसपछि", "क्रमशः सिक्नुहोस्", "Reader, Tablet, ग्रीनहाउस, निषेध वा आवश्यक जानकारी छान्नुहोस्।"], third: ["अन्त्यमा", "तालिम सुरु गर्नुहोस्", "मार्गदर्शनपछि तपाईंको स्थानको पृष्ठ खुल्नेछ।"], start: "सुन्नुहोस् र सुरु गर्नुहोस्", open: "तालिम खोल्नुहोस्", pause: "पज", resume: "जारी राख्नुहोस्", replay: "फेरि सुन्नुहोस्", skip: "आवाज छोड्नुहोस्", reading: "रेकर्डिङ सुन्दै पाठ पढ्न सक्नुहुन्छ।", playing: "ड्रागन बोल्दैछ। तपाईं पाठ पढ्न सक्नुहुन्छ।", paused: "अडियो रोकिएको छ।", finished: "मार्गदर्शन सकियो। तालिम खोलिँदैछ…", fallback: "रेकर्डिङ अहिले उपलब्ध छैन। मार्गदर्शनको पाठ देखिइरहन्छ।", gateTitle: "भाषा छान्नुहोस्", gateText: "ड्रागनले तपाईंलाई रोजेको भाषामा स्वागत गर्नेछ र प्रणाली कसरी प्रयोग गर्ने देखाउनेछ।" }
   };
 
+  const LINK_COPY = {
+    pl: ['Kopiuj link do przewodnika', 'Link skopiowany.', 'Skopiuj ręcznie poniższy link.', 'Link do przewodnika'],
+    en: ['Copy guide link', 'Link copied.', 'Copy the link below manually.', 'Guide link'],
+    ua: ['Копіювати посилання на гід', 'Посилання скопійовано.', 'Скопіюйте посилання нижче вручну.', 'Посилання на гід'],
+    ru: ['Копировать ссылку на гид', 'Ссылка скопирована.', 'Скопируйте ссылку ниже вручную.', 'Ссылка на гид'],
+    az: ['Bələdçi keçidini kopyala', 'Keçid kopyalandı.', 'Aşağıdakı keçidi əl ilə kopyalayın.', 'Bələdçi keçidi'],
+    es: ['Copiar enlace de la guía', 'Enlace copiado.', 'Copia manualmente el enlace de abajo.', 'Enlace de la guía'],
+    fil: ['Kopyahin ang link ng gabay', 'Nakopya ang link.', 'Manwal na kopyahin ang link sa ibaba.', 'Link ng gabay'],
+    id: ['Salin tautan panduan', 'Tautan disalin.', 'Salin tautan di bawah secara manual.', 'Tautan panduan'],
+    ne: ['गाइडको लिङ्क प्रतिलिपि गर्नुहोस्', 'लिङ्क प्रतिलिपि भयो।', 'तलको लिङ्क आफैँ प्रतिलिपि गर्नुहोस्।', 'गाइडको लिङ्क']
+  };
+  let copyGeneration = 0;
+  function publicGuideURL() {
+    const url = new URL('https://oleksandrkiris.github.io/citronex-dragon-guide/');
+    url.searchParams.set('lang', fallbackLanguage ? requestedLang : lang);
+    if (hasLocation) url.searchParams.set('location', locationKey);
+    url.searchParams.set('welcome', '1');
+    if (new URL(window.location.href).hash === '#guideApp') url.hash = 'guideApp';
+    return url.toString();
+  }
+  function resetGuideCopy() {
+    copyGeneration++;
+    const copy = LINK_COPY[lang] || LINK_COPY.en;
+    setText('copyGuideLink', copy[0]);
+    setText('copyGuideStatus', '');
+    setText('guideLinkLabel', copy[3]);
+    $('manualGuideLink').hidden = true;
+    $('guideLinkURL').value = publicGuideURL();
+  }
+  async function copyGuideLink() {
+    const generation = ++copyGeneration;
+    const url = publicGuideURL();
+    setText('copyGuideStatus', '');
+    $('manualGuideLink').hidden = true;
+    try {
+      if (!navigator.clipboard || typeof navigator.clipboard.writeText !== 'function') throw Error('Clipboard unavailable');
+      await navigator.clipboard.writeText(url);
+      if (generation !== copyGeneration) return;
+      setText('copyGuideStatus', (LINK_COPY[lang] || LINK_COPY.en)[1]);
+    } catch {
+      if (generation !== copyGeneration) return;
+      const input = $('guideLinkURL');
+      input.value = url;
+      $('manualGuideLink').hidden = false;
+      setText('copyGuideStatus', (LINK_COPY[lang] || LINK_COPY.en)[2]);
+      input.focus();
+      input.select();
+    }
+  }
+
   function t() { return TEXT[lang] || TEXT.pl; }
   function setText(id, value) { const node = $(id); if (node) node.textContent = value; }
 
@@ -521,6 +571,7 @@
     setText("gateTitle", copy.gateTitle);
     setText("languageLabel", copy.gateTitle);
     setText("gateText", locationCopy.gate);
+    resetGuideCopy();
   }
 
   function setGateVisible(visible) {
@@ -739,6 +790,7 @@
   pauseButton.addEventListener("click", togglePause);
   replayButton.addEventListener("click", replay);
   skipButton.addEventListener("click", finishAndOpen);
+  $("copyGuideLink").addEventListener("click", copyGuideLink);
   languageGate.querySelectorAll("[data-gate-lang]").forEach((button) => button.addEventListener("click", () => { applyLanguage(button.dataset.gateLang, true); setGateVisible(false); }));
 
   if (!validLocation) {
