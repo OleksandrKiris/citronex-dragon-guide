@@ -1,6 +1,7 @@
 // User-authorized GitHub Actions acceptance; never launch a local substitute browser.
 import assert from 'node:assert/strict';
 import { headUpgradeReady } from './cache-upgrade-gate.mjs';
+import { workerCacheName, selectUpgradeBase, finishEvidence } from './evidence-retention.mjs';
 import { createRequire } from 'node:module';
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
@@ -26,28 +27,28 @@ const files = ['index.html', 'assets/guide.js', 'assets/guide.css', 'sw.js',
   'manifest.webmanifest', 'assets/brand/primserv-logo.svg', 'assets/brand/primserv-icon-192.png',
   'assets/audio/intro-en.mp3'];
 const current = new Map(), previous = new Map();
-for (const file of files) {
-  const bytes = await readFile(file);
-  assert.equal(sha256(bytes), sha256(git('show', `${report.head}:${file}`)), `Exact head: ${file}`);
-  current.set(file, bytes);
-  previous.set(file, git('show', `${report.base}:${file}`));
-  report.files[file] = { bytes: bytes.length, sha256: sha256(bytes) };
+let baseCache, headCache;
+async function loadExactFiles() {
+  headCache = workerCacheName(git('show', `${report.head}:sw.js`));
+  const ancestors = git('rev-list', '--first-parent', report.base).toString().trim().split('\n');
+  report.upgradeBase = selectUpgradeBase(ancestors, sha => git('show', `${sha}:sw.js`), headCache);
+  for (const file of files) {
+    const bytes = await readFile(file);
+    assert.equal(sha256(bytes), sha256(git('show', `${report.head}:${file}`)), `Exact head: ${file}`);
+    current.set(file, bytes);
+    previous.set(file, git('show', `${report.upgradeBase}:${file}`));
+    report.files[file] = { bytes: bytes.length, sha256: sha256(bytes) };
+  }
+  baseCache = workerCacheName(previous.get('sw.js'));
+  assert.notEqual(baseCache, headCache, 'This acceptance requires a real SW upgrade');
 }
-const cacheName = bytes => {
-  const match = bytes.toString().match(/const CACHE_NAME = CACHE_PREFIX \+ "([^"]+)"/);
-  assert.ok(match, 'Versioned guide cache must be explicit');
-  return 'citronex-dragon-guide-' + match[1];
-};
-const baseCache = cacheName(previous.get('sw.js'));
-const headCache = cacheName(current.get('sw.js'));
-assert.notEqual(baseCache, headCache, 'This acceptance requires a real SW upgrade');
 let oldVersion = false;
 const prefix = '/citronex-dragon-guide/';
 const types = { html: 'text/html', js: 'application/javascript', css: 'text/css',
   svg: 'image/svg+xml', png: 'image/png', mp3: 'audio/mpeg', webmanifest: 'application/manifest+json' };
 const server = createServer((req, res) => {
   const url = new URL(req.url, 'http://localhost');
-  report.requests.push({ path: url.pathname, method: req.method, version: oldVersion ? 'base' : 'head' });
+  report.requests.push({ path: url.pathname, method: req.method, version: oldVersion ? 'upgrade-base' : 'head' });
   if (!['GET', 'HEAD'].includes(req.method) || !url.pathname.startsWith(prefix)) {
     res.writeHead(404).end(); return;
   }
@@ -73,11 +74,12 @@ async function offline(ctx, value) {
     await new Promise(resolve => server.listen(port, '127.0.0.1', resolve));
   }
 }
-let browser, activePage;
+let browser, activePage, activeContext, representativeContext;
 const contexts = [];
 async function context(width, storage = '') {
   const ctx = await browser.newContext({ viewport: { width, height: 900 }, locale: 'en-US' });
   contexts.push(ctx);
+  activeContext = ctx;
   ctx.setDefaultTimeout(12000);
   await ctx.tracing.start({ screenshots: true, snapshots: true });
   await ctx.route('**/*', route => {
@@ -130,6 +132,7 @@ async function failed(page) {
   assert.ok((await page.locator('#speechText').innerText()).length > 30);
 }
 try {
+  await loadExactFiles();
   browser = await chromium.launch({ headless: true });
   report.browser = `Chromium ${browser.version()} / Playwright 1.56.1`;
   for (const width of [1280, 320]) {
@@ -384,8 +387,48 @@ try {
     await offline(ctx,false);
     report.results.push({scenario:'old9 unified choice/return/clear,3 sites,public URL privacy,keyboard,progress,reload/Back/offline,no audio',width,selected,pass:true});
   }
+  for (const width of [1280, 320]) for (const [selected, site] of [['ka','zgorzelec_bogatynia'],['hy','']]) {
+    const { ctx, page } = await context(width);
+    await page.goto(`${base}?lang=${selected}${site ? '&location='+site : ''}&welcome=1&token=private-memo-secret&progress=99#private-progress`);
+    await ready(page);await controlled(page);
+    assert.equal(await page.locator('#manualMemo').isVisible(),false);
+    assert.equal(await page.locator('audio').getAttribute('src'),null);
+    const expectedName=`primserv-guide-${selected}-${site || 'generic'}.txt`;
+    const actualDownload=async suffix=>{
+      const event=page.waitForEvent('download');await keyboard(page,'downloadMemo');const item=await event;
+      assert.equal(item.suggestedFilename(),expectedName);assert.equal(await item.failure(),null);
+      const filename=`memo-${selected}-${site || 'generic'}-${width}-${suffix}.txt`;
+      await item.saveAs(join(reportDir,filename));const bytes=await readFile(join(reportDir,filename));const text=bytes.toString('utf8');
+      assert.equal(text,await page.locator('#memoText').inputValue());
+      assert.ok(text.includes(await page.locator('#speechText').innerText()));
+      for(const bad of ['private-memo-secret','token=','progress=','#private-progress','cxDragonGuide:'])assert.equal(text.includes(bad),false,bad);
+      const urls=text.match(/https:\/\/[^\s]+/g);assert.equal(urls.length,2);
+      const guide=new URL(urls[0]);assert.equal(guide.pathname,'/citronex-dragon-guide/');assert.equal(guide.searchParams.get('lang'),selected);assert.equal(guide.searchParams.get('location'),site || null);
+      assert.equal(guide.hash,'');assert.deepEqual([...new URL(urls[1]).searchParams.keys()],['lang']);
+      report.downloads ||= [];report.downloads.push({filename,bytes:bytes.length,sha256:sha256(bytes),language:selected,site:site || 'generic',mode:suffix});
+      return text;
+    };
+    const online=await actualDownload('online');
+    await offline(ctx,true);await page.reload();await ready(page);
+    assert.equal(await page.evaluate(()=>navigator.onLine),false);
+    assert.equal(await actualDownload('offline'),online);
+    await page.evaluate(()=>{Object.defineProperty(URL,'createObjectURL',{configurable:true,value:()=>{throw new DOMException('Download denied fixture','SecurityError');}});});
+    await keyboard(page,'downloadMemo');await page.locator('#manualMemo').waitFor({state:'visible'});
+    assert.equal(await page.locator('#memoText').inputValue(),online);
+    assert.equal(await page.locator('#memoText').getAttribute('readonly'),'');
+    assert.equal(await page.evaluate(()=>document.activeElement.id),'memoText');
+    assert.equal(await page.locator('#memoText').evaluate(n=>n.selectionEnd-n.selectionStart),online.length);
+    assert.ok((await page.locator('#memoStatus').innerText()).length>20);
+    assert.equal(await page.locator('audio').getAttribute('src'),null);
+    await shot(page,`memo-manual-${selected}-${width}`);
+    await page.locator('#languageSelect').selectOption('en');
+    assert.equal(await page.locator('#manualMemo').isVisible(),false);assert.equal(await page.locator('#memoText').inputValue(),'');
+    await offline(ctx,false);
+    report.results.push({scenario:'real UTF8 browser download online/offline; selected and generic public memo; denied API fixture readonly manual; keyboard/no audio',width,selected,site:site || 'generic',pass:true});
+  }
   oldVersion = true;
   const { ctx, page } = await context(320);
+  representativeContext = ctx;
   await page.goto(`${base}?location=ryczywol&lang=ua&welcome=1`); await ready(page); await controlled(page);
   await keyboard(page, 'skipButton'); await page.waitForURL(/citronex-ryczywol-szkolenie/);
   await page.goBack(); await ready(page);
@@ -436,7 +479,12 @@ try {
     const c = await caches.open(headCache);
     const rows = []; for (const req of await c.keys()) { const res = await c.match(req); rows.push({ url: req.url, bytes: (await res.arrayBuffer()).byteLength }); } return rows;
   }, headCache);
-  report.cacheUpgrade = { baseCache, headCache, offlineScriptHash, offlineHeadTurkishText: true };
+  await page.evaluate(()=>{Object.defineProperty(URL,'createObjectURL',{configurable:true,value:undefined});});
+  await keyboard(page,'downloadMemo');
+  assert.equal(await page.locator('#manualMemo').isVisible(),true);
+  assert.ok((await page.locator('#memoText').inputValue()).includes(await page.locator('#speechText').innerText()));
+  assert.equal(await page.locator('#memoText').getAttribute('readonly'),'');
+  report.cacheUpgrade = { upgradeBase: report.upgradeBase, baseCache, headCache, offlineScriptHash, offlineHeadTurkishText: true, offlineMemoManual: true };
   await shot(page, 'cache-upgrade-offline');
   report.results.push({ scenario: 'actual base SW → head SW; old cache deleted; preserved language/seen/unrelated; offline HEAD tr text and JS hash', pass: true });
   assert.deepEqual(report.errors, []);
@@ -444,12 +492,15 @@ try {
   report.pass = true;
 } catch (err) {
   report.pass = false; report.failure = err.stack; process.exitCode = 1;
-  if (activePage) await activePage.screenshot({ path: join(reportDir, 'failure.png'), fullPage: true }).catch(() => {});
+  if (activePage) await activePage.screenshot({ path: join(reportDir, 'failure.png'), fullPage: true }).catch(error => { report.failureScreenshotError = error.stack; });
 } finally {
-  for (const [i, ctx] of contexts.entries()) await ctx.tracing.stop({ path: join(reportDir, `trace-${i}.zip`) }).catch(() => {});
-  await browser?.close();
-  await new Promise(resolve => server.close(resolve));
-  report.finished = new Date().toISOString();
-  await writeFile(join(reportDir, 'acceptance.json'), JSON.stringify(report, null, 2));
-  console.log(JSON.stringify({ pass: report.pass, results: report.results, failure: report.failure, head: report.head }));
+  const result = await finishEvidence({ contexts, activeContext, representativeContext, reportDir, report,
+    closeBrowser: () => browser?.close(),
+    closeServer: () => new Promise((resolve, reject) => server.listening ? server.close(error => error ? reject(error) : resolve()) : resolve()),
+    writeReport: value => writeFile(join(reportDir, 'acceptance.json'), JSON.stringify(value, null, 2))
+  });
+  if (!report.pass) process.exitCode = 1;
+  if (!result.written) console.error(JSON.stringify(report));
+  console.log(JSON.stringify({ pass: report.pass, results: report.results, failure: report.failure,
+    head: report.head, base: report.base, upgradeBase: report.upgradeBase, traceRetention: report.traceRetention }));
 }

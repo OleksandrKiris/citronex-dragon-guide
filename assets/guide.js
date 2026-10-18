@@ -832,6 +832,142 @@
       $('locationSelect').focus();
     }
   }
+  const MEMO_UI = {
+  "pl": [
+    "Pobierz notatkę (.txt)",
+    "Tekst notatki do ręcznego zapisania",
+    "Poproszono o pobranie. Jeśli plik się nie pojawi, zapisz poniższy tekst ręcznie.",
+    "Pobieranie jest niedostępne. Zapisz poniższy tekst ręcznie."
+  ],
+  "en": [
+    "Download memo (.txt)",
+    "Memo text for manual saving",
+    "Download requested. If no file appears, save the text below manually.",
+    "Download is unavailable. Save the text below manually."
+  ],
+  "ua": [
+    "Завантажити пам’ятку (.txt)",
+    "Текст пам’ятки для ручного збереження",
+    "Завантаження запрошено. Якщо файл не з’явиться, збережіть текст нижче вручну.",
+    "Завантаження недоступне. Збережіть текст нижче вручну."
+  ],
+  "ru": [
+    "Скачать памятку (.txt)",
+    "Текст памятки для ручного сохранения",
+    "Скачивание запрошено. Если файл не появился, сохраните текст ниже вручную.",
+    "Скачивание недоступно. Сохраните текст ниже вручную."
+  ],
+  "az": [
+    "Yaddaş qeydi endir (.txt)",
+    "Əl ilə saxlamaq üçün qeyd mətni",
+    "Endirmə tələb edildi. Fayl görünməzsə, aşağıdakı mətni əl ilə saxlayın.",
+    "Endirmə mümkün deyil. Aşağıdakı mətni əl ilə saxlayın."
+  ],
+  "es": [
+    "Descargar nota (.txt)",
+    "Texto de la nota para guardar manualmente",
+    "Descarga solicitada. Si no aparece el archivo, guarda el texto de abajo manualmente.",
+    "La descarga no está disponible. Guarda el texto de abajo manualmente."
+  ],
+  "fil": [
+    "I-download ang paalala (.txt)",
+    "Teksto ng paalala para sa manwal na pag-save",
+    "Hiniling ang download. Kung walang file, manwal na i-save ang teksto sa ibaba.",
+    "Hindi available ang download. Manwal na i-save ang teksto sa ibaba."
+  ],
+  "id": [
+    "Unduh catatan (.txt)",
+    "Teks catatan untuk disimpan manual",
+    "Unduhan diminta. Jika file tidak muncul, simpan teks di bawah secara manual.",
+    "Unduhan tidak tersedia. Simpan teks di bawah secara manual."
+  ],
+  "ne": [
+    "स्मरणपत्र डाउनलोड गर्नुहोस् (.txt)",
+    "आफैँ सुरक्षित गर्न मिल्ने स्मरणपत्रको पाठ",
+    "डाउनलोड अनुरोध गरियो। फाइल नआए तलको पाठ आफैँ सुरक्षित गर्नुहोस्।",
+    "डाउनलोड उपलब्ध छैन। तलको पाठ आफैँ सुरक्षित गर्नुहोस्।"
+  ],
+  "ka": [
+    "სამახსოვროს ჩამოტვირთვა (.txt)",
+    "სამახსოვროს ტექსტი ხელით შესანახად",
+    "ჩამოტვირთვა მოთხოვნილია. თუ ფაილი არ გამოჩნდა, ქვემოთ მოცემული ტექსტი ხელით შეინახეთ.",
+    "ჩამოტვირთვა მიუწვდომელია. ქვემოთ მოცემული ტექსტი ხელით შეინახეთ."
+  ],
+  "tr": [
+    "Bilgi notunu indir (.txt)",
+    "Elle kaydetmek için bilgi notu metni",
+    "İndirme istendi. Dosya görünmezse aşağıdaki metni elle kaydedin.",
+    "İndirme kullanılamıyor. Aşağıdaki metni elle kaydedin."
+  ],
+  "hy": [
+    "Ներբեռնել հուշաթերթը (.txt)",
+    "Հուշաթերթի տեքստը ձեռքով պահպանելու համար",
+    "Ներբեռնումը պահանջված է։ Եթե ֆայլը չի հայտնվում, ստորև նշված տեքստը պահպանեք ձեռքով։",
+    "Ներբեռնումն անհասանելի է։ Ստորև նշված տեքստը պահպանեք ձեռքով։"
+  ]
+};
+  let memoObjectURL = null;
+  let memoCleanupTimer = null;
+  function releaseMemoURL() {
+    if (memoCleanupTimer !== null) clearTimeout(memoCleanupTimer);
+    memoCleanupTimer = null;
+    const pendingURL = memoObjectURL;
+    memoObjectURL = null;
+    if (pendingURL && typeof URL.revokeObjectURL === 'function') {
+      try { URL.revokeObjectURL(pendingURL); } catch { /* Optional browser cleanup must not block readable fallback. */ }
+    }
+  }
+  function resetMemo() {
+    releaseMemoURL();
+    const labels = MEMO_UI[lang] || MEMO_UI.en;
+    setText('downloadMemo', labels[0]);
+    setText('memoTextLabel', labels[1]);
+    setText('memoStatus', '');
+    $('memoText').value = '';
+    $('manualMemo').hidden = true;
+    $('downloadMemo').disabled = !validLocation;
+  }
+  function publicMemoText() {
+    const copy = getLocationGuideCopy(lang);
+    const site = hasLocation ? LOCATION_NAMES[locationKey] : (LOCATION_UI[lang] || LOCATION_UI.en)[1];
+    const destination = new URL(hasLocation ? TARGETS[locationKey] : 'https://oleksandrkiris.github.io/citronex-hydra-project/');
+    destination.searchParams.set('lang', lang);
+    const textPath = TEXT_PATH[lang];
+    return [copy.title, site, '', copy.spoken,
+      ...(textPath ? ['', ...textPath.steps, '', textPath.audio, textPath.target] : []),
+      '', (LINK_COPY[lang] || LINK_COPY.en)[3] + ': ' + publicGuideURL(),
+      t().open + ': ' + destination.toString(), ''].join('\n');
+  }
+  function downloadMemo() {
+    if (!validLocation) return;
+    releaseMemoURL();
+    const text = publicMemoText();
+    const labels = MEMO_UI[lang] || MEMO_UI.en;
+    const field = $('memoText');
+    field.value = text;
+    $('manualMemo').hidden = false;
+    let anchor;
+    try {
+      anchor = document.createElement('a');
+      if (!('download' in anchor) || typeof Blob !== 'function' ||
+          typeof URL.createObjectURL !== 'function' || typeof URL.revokeObjectURL !== 'function') throw Error('Download unavailable');
+      const safeLang = LANGS.includes(lang) ? lang : 'en';
+      const safeSite = hasLocation && Object.hasOwn(TARGETS, locationKey) ? locationKey : 'generic';
+      const url = URL.createObjectURL(new Blob([text], { type: 'text/plain;charset=utf-8' }));
+      memoObjectURL = url;
+      anchor.href = url;
+      anchor.download = `primserv-guide-${safeLang}-${safeSite}.txt`;
+      document.body.appendChild(anchor);
+      anchor.click();
+      setText('memoStatus', labels[2]);
+      memoCleanupTimer = window.setTimeout(() => { if (memoObjectURL === url) releaseMemoURL(); }, 1000);
+    } catch {
+      releaseMemoURL();
+      setText('memoStatus', labels[3]);
+      field.focus();
+      field.select();
+    } finally { anchor?.remove(); }
+  }
   let copyGeneration = 0;
   function publicGuideURL() {
     const url = new URL('https://oleksandrkiris.github.io/citronex-dragon-guide/');
@@ -946,6 +1082,7 @@
     }
     renderLocationControls();
     resetGuideCopy();
+    resetMemo();
   }
 
   function setGateVisible(visible) {
@@ -1174,6 +1311,8 @@
   replayButton.addEventListener("click", replay);
   skipButton.addEventListener("click", finishAndOpen);
   $("copyGuideLink").addEventListener("click", copyGuideLink);
+  $("downloadMemo").addEventListener("click", downloadMemo);
+  window.addEventListener("pagehide", releaseMemoURL);
   $('locationSelect').addEventListener('change', () => selectLocation($('locationSelect').value));
   $('returnLocation').addEventListener('click', () => { if (lastLocationChoice) selectLocation(lastLocationChoice); });
   $('clearLocation').addEventListener('click', () => selectLocation('', true));
