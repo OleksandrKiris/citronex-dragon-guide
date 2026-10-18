@@ -549,7 +549,7 @@ test("real HTML exposes the fallback note and all return links; changed CSS/JS h
   assert.ok(html.includes('id="languageFallback" class="language-fallback" role="status" hidden'));
   assert.equal((html.match(/data-hydra-link/g) || []).length, 3);
   for (const path of ["assets/guide.js", "assets/guide.css"]) {
-    const version = path.endsWith(".js") ? "20261018-memo1" : "20261016-primserv-guide1";
+    const version = path.endsWith(".js") ? "20261018-memocopy1" : "20261016-primserv-guide1";
     assert.ok(html.includes(`${path}?v=${version}`));
     assert.ok(sw.includes(`${path}?v=${version}`));
   }
@@ -848,4 +848,55 @@ test('memo timeout revokes its own URL; obsolete timer cannot revoke a newer dow
  c.node('downloadMemo').emit('click');assert.deepEqual(c.revoked,['blob:test-1']);old.fn();assert.deepEqual(c.revoked,['blob:test-1']);
  c.timers.filter(t=>t.ms===1000).at(-1).fn();assert.deepEqual(c.revoked,['blob:test-1','blob:test-2']);
  assert.equal(c.redirects.length,0);
+});
+
+for(const lang of [...allLocationLangs,'uk'])for(const site of ['',...Object.keys(targets)])test(`memo clipboard ${lang}/${site||'generic'}: exact canonical readonly payload, explicit gesture only`,async()=>{
+ const writes=[];const c=boot(`lang=${lang}${site?'&location='+site:''}&token=private-secret&progress=99`,{clipboard:{writeText:async text=>writes.push(text)}});
+ const before=[...c.storage];assert.equal(writes.length,0);c.node('copyMemo').emit('click');await new Promise(setImmediate);
+ assert.equal(writes.length,1);assert.equal(writes[0],c.node('memoText').value);
+ assert.ok(writes[0].includes(c.node('speechText').textContent));
+ for(const secret of ['private-secret','token=','progress=','cxDragonGuide:'])assert.equal(writes[0].includes(secret),false);
+ assert.ok(c.node('copyMemo').textContent.length>5);assert.ok(c.node('memoStatus').textContent.length>5);
+ assert.equal(c.node('manualMemo').hidden,false);assert.equal(c.blobs.length,0);assert.equal(c.downloads.length,0);
+ assert.deepEqual([...c.storage],before);assert.equal(c.redirects.length,0);assert.equal(c.node('guideAudio').loads||0,0);
+ c.node('downloadMemo').emit('click');assert.equal(await c.blobs[0].text(),writes[0]);
+});
+for(const lang of allLocationLangs)for(const mode of ['absent','reject','throw'])test(`memo clipboard ${lang}/${mode}: selected manual fallback`,async()=>{
+ const clipboard=mode==='absent'?undefined:{writeText:()=>{if(mode==='throw')throw Error('denied');return Promise.reject(Error('denied'));}};
+ const c=boot(`lang=${lang}&location=ryczywol`,{clipboard});c.node('copyMemo').emit('click');await new Promise(setImmediate);
+ assert.equal(c.node('manualMemo').hidden,false);assert.equal(c.document.activeElement,c.node('memoText'));assert.equal(c.node('memoText').selected,true);
+ assert.ok(c.node('memoText').value.length>100);if(lang==='en')assert.equal(c.node('memoStatus').textContent,'Copy unavailable. Copy the selected text manually.');
+});
+for(const action of ['language','site','clear','download','newcopy'])for(const rejection of [false,true])test(`memo pending ${action}/${rejection}: obsolete settlement cannot alter current state`,async()=>{
+ const pending=[];const c=boot('lang=en&location=ryczywol',{clipboard:{writeText:()=>new Promise((resolve,reject)=>pending.push({resolve,reject}))}});
+ c.node('copyMemo').emit('click');assert.equal(c.node('memoStatus').textContent,'');
+ if(action==='language')c.choose('tr');
+ if(action==='site'){c.node('locationSelect').value='siechnice';c.node('locationSelect').emit('change');}
+ if(action==='clear')c.node('clearLocation').emit('click');
+ if(action==='download')c.node('downloadMemo').emit('click');
+ if(action==='newcopy'){c.node('copyMemo').emit('click');pending[1].resolve();await new Promise(setImmediate);assert.equal(c.node('memoStatus').textContent,'Memo text copied.');}
+ const state=[c.node('memoStatus').textContent,c.node('memoText').value,c.node('manualMemo').hidden,c.document.activeElement];
+ if(rejection)pending[0].reject(Error('late'));else pending[0].resolve();await new Promise(setImmediate);
+ assert.deepEqual([c.node('memoStatus').textContent,c.node('memoText').value,c.node('manualMemo').hidden,c.document.activeElement],state);
+});
+test('invalid memo clipboard location cannot export; success requires fulfillment',async()=>{
+ let resolve;const writes=[];const c=boot('lang=en&location=invalid',{clipboard:{writeText:text=>{writes.push(text);return new Promise(r=>resolve=r);}}});
+ assert.equal(c.node('copyMemo').disabled,true);c.node('copyMemo').emit('click');assert.equal(writes.length,0);
+ c.node('locationSelect').value='siechnice';c.node('locationSelect').emit('change');c.node('copyMemo').emit('click');assert.equal(c.node('memoStatus').textContent,'');
+ resolve();await new Promise(setImmediate);assert.equal(c.node('memoStatus').textContent,'Memo text copied.');
+});
+
+for(const first of ['copyMemo','copyGuideLink'])for(const rejected of [false,true])test(`shared clipboard UI: ${first} late ${rejected?'reject':'fulfill'} cannot override the other action`,async()=>{
+ const pending=[];const c=boot('lang=en&location=ryczywol',{clipboard:{writeText:text=>new Promise((resolve,reject)=>pending.push({text,resolve,reject}))}});
+ const second=first==='copyMemo'?'copyGuideLink':'copyMemo';
+ c.node(first).emit('click');c.node(second).emit('click');
+ pending[1].resolve();await new Promise(setImmediate);
+ assert.equal(pending.length,2);assert.notEqual(pending[0].text,pending[1].text);
+ if(second==='copyMemo')assert.equal(pending[1].text,c.node('memoText').value);else assert.match(pending[1].text,/^https:\/\/[^\n]+$/);
+ c.node(second).focus();
+ const snapshot=()=>[c.document.activeElement,c.node('memoStatus').textContent,c.node('copyGuideStatus').textContent,c.node('memoText').value,c.node('guideLinkURL').value,c.node('manualMemo').hidden,c.node('manualGuideLink').hidden];
+ const latest=snapshot();assert.ok(c.node(second==='copyMemo'?'memoStatus':'copyGuideStatus').textContent);
+ if(rejected)pending[0].reject(Error('obsolete refusal'));else pending[0].resolve();await new Promise(setImmediate);
+ assert.deepEqual(snapshot(),latest,'Latest action focus/status/text and visibility must survive obsolete settlement');
+ assert.equal(c.redirects.length,0);assert.equal(c.node('guideAudio').loads||0,0);
 });
