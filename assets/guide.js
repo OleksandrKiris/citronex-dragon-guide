@@ -906,6 +906,69 @@
     "Ներբեռնումն անհասանելի է։ Ստորև նշված տեքստը պահպանեք ձեռքով։"
   ]
 };
+  const MEMO_COPY = {
+  "pl": [
+    "Kopiuj tekst notatki",
+    "Tekst notatki skopiowany.",
+    "Kopiowanie niedostępne. Zaznaczony tekst skopiuj ręcznie."
+  ],
+  "en": [
+    "Copy memo text",
+    "Memo text copied.",
+    "Copy unavailable. Copy the selected text manually."
+  ],
+  "ua": [
+    "Скопіювати текст пам’ятки",
+    "Текст пам’ятки скопійовано.",
+    "Копіювання недоступне. Скопіюйте виділений текст вручну."
+  ],
+  "ru": [
+    "Скопировать текст памятки",
+    "Текст памятки скопирован.",
+    "Копирование недоступно. Скопируйте выделенный текст вручную."
+  ],
+  "az": [
+    "Qeyd mətnini kopyala",
+    "Qeyd mətni kopyalandı.",
+    "Kopyalama mümkün deyil. Seçilmiş mətni əl ilə kopyalayın."
+  ],
+  "es": [
+    "Copiar texto de la nota",
+    "Texto de la nota copiado.",
+    "No se puede copiar. Copia el texto seleccionado manualmente."
+  ],
+  "fil": [
+    "Kopyahin ang teksto ng paalala",
+    "Nakopya ang teksto ng paalala.",
+    "Hindi makopya. Manwal na kopyahin ang napiling teksto."
+  ],
+  "id": [
+    "Salin teks catatan",
+    "Teks catatan disalin.",
+    "Tidak dapat menyalin. Salin teks yang dipilih secara manual."
+  ],
+  "ne": [
+    "स्मरणपत्रको पाठ प्रतिलिपि गर्नुहोस्",
+    "स्मरणपत्रको पाठ प्रतिलिपि भयो।",
+    "प्रतिलिपि उपलब्ध छैन। चयन गरिएको पाठ आफैँ प्रतिलिपि गर्नुहोस्।"
+  ],
+  "ka": [
+    "სამახსოვროს ტექსტის კოპირება",
+    "სამახსოვროს ტექსტი დაკოპირებულია.",
+    "კოპირება მიუწვდომელია. მონიშნული ტექსტი ხელით დააკოპირეთ."
+  ],
+  "tr": [
+    "Bilgi notu metnini kopyala",
+    "Bilgi notu metni kopyalandı.",
+    "Kopyalama kullanılamıyor. Seçili metni elle kopyalayın."
+  ],
+  "hy": [
+    "Պատճենել հուշաթերթի տեքստը",
+    "Հուշաթերթի տեքստը պատճենված է։",
+    "Պատճենումն անհասանելի է։ Ընտրված տեքստը պատճենեք ձեռքով։"
+  ]
+};
+  let memoCopyGeneration = 0;
   let memoObjectURL = null;
   let memoCleanupTimer = null;
   function releaseMemoURL() {
@@ -918,6 +981,9 @@
     }
   }
   function resetMemo() {
+    memoCopyGeneration++;
+    setText('copyMemo', (MEMO_COPY[lang] || MEMO_COPY.en)[0]);
+    $('copyMemo').disabled = !validLocation;
     releaseMemoURL();
     const labels = MEMO_UI[lang] || MEMO_UI.en;
     setText('downloadMemo', labels[0]);
@@ -940,6 +1006,7 @@
   }
   function downloadMemo() {
     if (!validLocation) return;
+    memoCopyGeneration++;
     releaseMemoURL();
     const text = publicMemoText();
     const labels = MEMO_UI[lang] || MEMO_UI.en;
@@ -967,6 +1034,28 @@
       field.focus();
       field.select();
     } finally { anchor?.remove(); }
+  }
+  async function copyMemo() {
+    if (!validLocation) return;
+    const generation = ++memoCopyGeneration;
+    releaseMemoURL();
+    const text = publicMemoText();
+    const labels = MEMO_COPY[lang] || MEMO_COPY.en;
+    const field = $('memoText');
+    field.value = text;
+    $('manualMemo').hidden = false;
+    setText('memoStatus', '');
+    try {
+      if (!navigator.clipboard || typeof navigator.clipboard.writeText !== 'function') throw Error('Clipboard unavailable');
+      await navigator.clipboard.writeText(text);
+      if (generation !== memoCopyGeneration) return;
+      setText('memoStatus', labels[1]);
+    } catch {
+      if (generation !== memoCopyGeneration) return;
+      setText('memoStatus', labels[2]);
+      field.focus();
+      field.select();
+    }
   }
   let copyGeneration = 0;
   function publicGuideURL() {
@@ -1312,7 +1401,8 @@
   skipButton.addEventListener("click", finishAndOpen);
   $("copyGuideLink").addEventListener("click", copyGuideLink);
   $("downloadMemo").addEventListener("click", downloadMemo);
-  window.addEventListener("pagehide", releaseMemoURL);
+  $("copyMemo").addEventListener("click", copyMemo);
+  window.addEventListener("pagehide", () => { memoCopyGeneration++; releaseMemoURL(); });
   $('locationSelect').addEventListener('change', () => selectLocation($('locationSelect').value));
   $('returnLocation').addEventListener('click', () => { if (lastLocationChoice) selectLocation(lastLocationChoice); });
   $('clearLocation').addEventListener('click', () => selectLocation('', true));

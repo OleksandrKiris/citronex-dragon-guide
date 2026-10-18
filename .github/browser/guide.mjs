@@ -426,6 +426,44 @@ try {
     await offline(ctx,false);
     report.results.push({scenario:'real UTF8 browser download online/offline; selected and generic public memo; denied API fixture readonly manual; keyboard/no audio',width,selected,site:site || 'generic',pass:true});
   }
+  for (const width of [320,1280]) {
+    const {ctx,page}=await context(width);
+    await page.addInitScript(()=>{
+      window.__memoWrites=[];window.__memoPending=[];window.__memoMode='success';
+      Object.defineProperty(navigator,'clipboard',{configurable:true,value:{writeText:text=>{
+        window.__memoWrites.push(text);
+        if(window.__memoMode==='denied')return Promise.reject(new DOMException('Denied fixture','NotAllowedError'));
+        if(window.__memoMode==='pending')return new Promise((resolve,reject)=>window.__memoPending.push({resolve,reject}));
+        return Promise.resolve();
+      }}});
+    });
+    await page.goto(`${base}?lang=en&location=ryczywol&token=private-copy&welcome=1`);await ready(page);await controlled(page);
+    assert.equal(await page.evaluate(()=>window.__memoWrites.length),0);
+    await keyboard(page,'copyMemo');
+    await page.waitForFunction(()=>document.getElementById('memoStatus').textContent==='Memo text copied.');
+    const text=await page.locator('#memoText').inputValue();
+    assert.equal(await page.evaluate(()=>window.__memoWrites[0]),text);assert.equal(text.includes('private-copy'),false);
+    assert.equal(await page.locator('#memoStatus').getAttribute('aria-live'),'polite');
+    await offline(ctx,true);await page.reload();await ready(page);
+    await page.evaluate(()=>window.__memoMode='denied');await keyboard(page,'copyMemo');
+    await page.waitForFunction(()=>document.activeElement.id==='memoText');
+    assert.equal(await page.locator('#memoText').inputValue(),text);
+    assert.equal(await page.locator('#memoText').evaluate(n=>n.selectionEnd-n.selectionStart),text.length);
+    assert.equal(await page.locator('#memoStatus').innerText(),'Copy unavailable. Copy the selected text manually.');
+    await shot(page,`copy-memo-manual-${width}`);
+    for(const reject of [false,true]){
+      await page.evaluate(()=>window.__memoMode='pending');await keyboard(page,'copyMemo');
+      assert.equal(await page.locator('#memoStatus').innerText(),'');
+      await page.locator('#languageSelect').selectOption('tr');
+      await page.evaluate(reject=>{const p=window.__memoPending.shift();if(reject)p.reject(Error('late fixture'));else p.resolve();},reject);
+      await page.evaluate(()=>new Promise(resolve=>setTimeout(resolve,0)));
+      assert.equal(await page.locator('#memoStatus').innerText(),'');assert.equal(await page.locator('#manualMemo').isVisible(),false);
+      await page.locator('#languageSelect').selectOption('en');
+    }
+    assert.equal(await page.locator('audio').getAttribute('src'),null);
+    await offline(ctx,false);
+    report.results.push({scenario:'memo clipboard button payload fixture; fulfilled-only success; offline denied selection; late resolve/reject language race; keyboard/no audio; not OS clipboard certification',width,pass:true});
+  }
   oldVersion = true;
   const { ctx, page } = await context(320);
   representativeContext = ctx;
@@ -484,7 +522,11 @@ try {
   assert.equal(await page.locator('#manualMemo').isVisible(),true);
   assert.ok((await page.locator('#memoText').inputValue()).includes(await page.locator('#speechText').innerText()));
   assert.equal(await page.locator('#memoText').getAttribute('readonly'),'');
-  report.cacheUpgrade = { upgradeBase: report.upgradeBase, baseCache, headCache, offlineScriptHash, offlineHeadTurkishText: true, offlineMemoManual: true };
+  await page.evaluate(()=>Object.defineProperty(navigator,'clipboard',{configurable:true,value:undefined}));
+  await keyboard(page,'copyMemo');
+  await page.waitForFunction(()=>document.activeElement.id==='memoText');
+  assert.ok((await page.locator('#memoText').inputValue()).includes(await page.locator('#speechText').innerText()));
+  report.cacheUpgrade = { offlineMemoCopyManual: true, upgradeBase: report.upgradeBase, baseCache, headCache, offlineScriptHash, offlineHeadTurkishText: true, offlineMemoManual: true };
   await shot(page, 'cache-upgrade-offline');
   report.results.push({ scenario: 'actual base SW → head SW; old cache deleted; preserved language/seen/unrelated; offline HEAD tr text and JS hash', pass: true });
   assert.deepEqual(report.errors, []);
