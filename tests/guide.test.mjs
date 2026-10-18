@@ -885,3 +885,18 @@ test('invalid memo clipboard location cannot export; success requires fulfillmen
  c.node('locationSelect').value='siechnice';c.node('locationSelect').emit('change');c.node('copyMemo').emit('click');assert.equal(c.node('memoStatus').textContent,'');
  resolve();await new Promise(setImmediate);assert.equal(c.node('memoStatus').textContent,'Memo text copied.');
 });
+
+for(const first of ['copyMemo','copyGuideLink'])for(const rejected of [false,true])test(`shared clipboard UI: ${first} late ${rejected?'reject':'fulfill'} cannot override the other action`,async()=>{
+ const pending=[];const c=boot('lang=en&location=ryczywol',{clipboard:{writeText:text=>new Promise((resolve,reject)=>pending.push({text,resolve,reject}))}});
+ const second=first==='copyMemo'?'copyGuideLink':'copyMemo';
+ c.node(first).emit('click');c.node(second).emit('click');
+ pending[1].resolve();await new Promise(setImmediate);
+ assert.equal(pending.length,2);assert.notEqual(pending[0].text,pending[1].text);
+ if(second==='copyMemo')assert.equal(pending[1].text,c.node('memoText').value);else assert.match(pending[1].text,/^https:\/\/[^\n]+$/);
+ c.node(second).focus();
+ const snapshot=()=>[c.document.activeElement,c.node('memoStatus').textContent,c.node('copyGuideStatus').textContent,c.node('memoText').value,c.node('guideLinkURL').value,c.node('manualMemo').hidden,c.node('manualGuideLink').hidden];
+ const latest=snapshot();assert.ok(c.node(second==='copyMemo'?'memoStatus':'copyGuideStatus').textContent);
+ if(rejected)pending[0].reject(Error('obsolete refusal'));else pending[0].resolve();await new Promise(setImmediate);
+ assert.deepEqual(snapshot(),latest,'Latest action focus/status/text and visibility must survive obsolete settlement');
+ assert.equal(c.redirects.length,0);assert.equal(c.node('guideAudio').loads||0,0);
+});

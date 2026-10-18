@@ -968,7 +968,7 @@
     "Պատճենումն անհասանելի է։ Ընտրված տեքստը պատճենեք ձեռքով։"
   ]
 };
-  let memoCopyGeneration = 0;
+  let clipboardGeneration = 0;
   let memoObjectURL = null;
   let memoCleanupTimer = null;
   function releaseMemoURL() {
@@ -981,7 +981,7 @@
     }
   }
   function resetMemo() {
-    memoCopyGeneration++;
+    clipboardGeneration++;
     setText('copyMemo', (MEMO_COPY[lang] || MEMO_COPY.en)[0]);
     $('copyMemo').disabled = !validLocation;
     releaseMemoURL();
@@ -1006,7 +1006,7 @@
   }
   function downloadMemo() {
     if (!validLocation) return;
-    memoCopyGeneration++;
+    clipboardGeneration++;
     releaseMemoURL();
     const text = publicMemoText();
     const labels = MEMO_UI[lang] || MEMO_UI.en;
@@ -1037,7 +1037,7 @@
   }
   async function copyMemo() {
     if (!validLocation) return;
-    const generation = ++memoCopyGeneration;
+    const generation = ++clipboardGeneration;
     releaseMemoURL();
     const text = publicMemoText();
     const labels = MEMO_COPY[lang] || MEMO_COPY.en;
@@ -1048,16 +1048,15 @@
     try {
       if (!navigator.clipboard || typeof navigator.clipboard.writeText !== 'function') throw Error('Clipboard unavailable');
       await navigator.clipboard.writeText(text);
-      if (generation !== memoCopyGeneration) return;
+      if (generation !== clipboardGeneration) return;
       setText('memoStatus', labels[1]);
     } catch {
-      if (generation !== memoCopyGeneration) return;
+      if (generation !== clipboardGeneration) return;
       setText('memoStatus', labels[2]);
       field.focus();
       field.select();
     }
   }
-  let copyGeneration = 0;
   function publicGuideURL() {
     const url = new URL('https://oleksandrkiris.github.io/citronex-dragon-guide/');
     url.searchParams.set('lang', fallbackLanguage ? requestedLang : lang);
@@ -1067,7 +1066,7 @@
     return url.toString();
   }
   function resetGuideCopy() {
-    copyGeneration++;
+    clipboardGeneration++;
     const copy = LINK_COPY[lang] || LINK_COPY.en;
     setText('copyGuideLink', copy[0]);
     setText('copyGuideStatus', '');
@@ -1076,17 +1075,17 @@
     $('guideLinkURL').value = publicGuideURL();
   }
   async function copyGuideLink() {
-    const generation = ++copyGeneration;
+    const generation = ++clipboardGeneration;
     const url = publicGuideURL();
     setText('copyGuideStatus', '');
     $('manualGuideLink').hidden = true;
     try {
       if (!navigator.clipboard || typeof navigator.clipboard.writeText !== 'function') throw Error('Clipboard unavailable');
       await navigator.clipboard.writeText(url);
-      if (generation !== copyGeneration) return;
+      if (generation !== clipboardGeneration) return;
       setText('copyGuideStatus', (LINK_COPY[lang] || LINK_COPY.en)[1]);
     } catch {
-      if (generation !== copyGeneration) return;
+      if (generation !== clipboardGeneration) return;
       const input = $('guideLinkURL');
       input.value = url;
       $('manualGuideLink').hidden = false;
@@ -1402,7 +1401,7 @@
   $("copyGuideLink").addEventListener("click", copyGuideLink);
   $("downloadMemo").addEventListener("click", downloadMemo);
   $("copyMemo").addEventListener("click", copyMemo);
-  window.addEventListener("pagehide", () => { memoCopyGeneration++; releaseMemoURL(); });
+  window.addEventListener("pagehide", () => { clipboardGeneration++; releaseMemoURL(); });
   $('locationSelect').addEventListener('change', () => selectLocation($('locationSelect').value));
   $('returnLocation').addEventListener('click', () => { if (lastLocationChoice) selectLocation(lastLocationChoice); });
   $('clearLocation').addEventListener('click', () => selectLocation('', true));
