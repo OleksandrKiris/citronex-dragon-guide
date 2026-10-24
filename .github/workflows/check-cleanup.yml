@@ -50,3 +50,35 @@ jobs:
           path: ${{ runner.temp }}/primserv-browser-report
           if-no-files-found: error
           retention-days: 7
+
+  localized-copy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Install pinned copy acceptance browser
+        run: |
+          npm install --prefix "$RUNNER_TEMP/dragon-copy-browser" --no-save --no-package-lock playwright@1.56.1
+          "$RUNNER_TEMP/dragon-copy-browser/node_modules/.bin/playwright" install --with-deps chromium
+      - name: Read actual copy controls and manual fallbacks in all twelve languages
+        env:
+          PLAYWRIGHT_PACKAGE: ${{ runner.temp }}/dragon-copy-browser/node_modules/playwright
+          BROWSER_REPORT: ${{ runner.temp }}/dragon-localized-copy
+          TESTED_HEAD: ${{ github.event.pull_request.head.sha }}
+          TESTED_BASE: ${{ github.event.pull_request.base.sha }}
+        run: node .github/browser/localized-copy.mjs
+      - name: Keep language action evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: localized-copy-${{ github.event.pull_request.head.sha }}
+          path: ${{ runner.temp }}/dragon-localized-copy
+          if-no-files-found: error
+          retention-days: 7
